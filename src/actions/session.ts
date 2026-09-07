@@ -3,26 +3,20 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { getDb, type Tx } from '@/db/client'
+import { getDb } from '@/db/client'
 import { loadProgram } from '@/db/queries/home'
 import { getSessionView, loadExerciseCfg, loadExerciseHistory, loadGym, loadTemplateEntries, type SessionView } from '@/db/queries/session'
+import { buildSummary, type SessionSummary } from '@/db/queries/summary'
 import { bodyMetric, program, session, sessionExercise, setLog, template, templateExercise } from '@/db/schema'
 import { getGoal } from '@/lib/domain/goal'
-import { formatLoad } from '@/lib/domain/load-format'
 import { advanceLoop, sessionAdvances } from '@/lib/domain/loop'
-import { getPhase, weekPhase } from '@/lib/domain/phase'
-import { serializeHeader, serializeSessionLine, type ParsedSegment } from '@/lib/domain/shorthand'
-import { programWeek, todayIST } from '@/lib/domain/time'
-import type { Goal, LoggedSet } from '@/lib/domain/types'
-import { collapsedLine } from '@/lib/domain/verdict'
+import { getPhase, nextWeekPhaseName } from '@/lib/domain/phase'
+import { todayIST } from '@/lib/domain/time'
+import type { Goal } from '@/lib/domain/types'
 import { AppError } from '@/lib/errors'
 import { recomputeExercise } from '@/db/recompute'
 
 const uuid = z.string().uuid()
-
-export async function nextWeekPhaseFor(date: string, prog: { startDate: string; nextIndex: number; easyWeekOverrides: { from: string; to: string }[] }) {
-  return weekPhase(programWeek(date, prog.startDate) + 1, prog).name
-}
 
 // ---------- Start ----------
 
@@ -85,7 +79,7 @@ export async function loadSessionView(sessionId: string): Promise<SessionView | 
   const prog = await loadProgram(db)
   const [s] = await db.select({ date: session.date }).from(session).where(eq(session.id, sessionId)).limit(1)
   if (!s) return null
-  return getSessionView(db, sessionId, await nextWeekPhaseFor(s.date, prog))
+  return getSessionView(db, sessionId, nextWeekPhaseName(s.date, prog))
 }
 
 // ---------- Swap / note ----------
@@ -161,18 +155,6 @@ const finishSchema = z.object({
   note: z.string().max(1000).nullable(),
 })
 
-export interface SessionSummary {
-  sessionId: string
-  templateName: string | null
-  durationMin: number
-  setCount: number
-  beatCount: number
-  prs: string[]
-  exercises: { name: string; collapsed: string | null }[]
-  shorthand: string
-  nextTemplateName: string
-}
-
 /** One transaction; re-submittable (a finished session returns its summary without writing). */
 export async function finishSession(input: z.input<typeof finishSchema>): Promise<SessionSummary> {
   const parsed = finishSchema.safeParse(input)
@@ -206,58 +188,13 @@ export async function finishSession(input: z.input<typeof finishSchema>): Promis
       const exIds = await tx.select({ id: sessionExercise.id }).from(sessionExercise).where(eq(sessionExercise.sessionId, row.s.id))
       for (const e of exIds) await recomputeExercise(tx, e.id)
     }
-    return buildSummary(tx, row.s.id)
+    const summary = await buildSummary(tx, row.s.id)
+    if (!summary) throw new AppError('NOT_FOUND', 'Session not found', 404)
+    return summary
   })
   revalidatePath('/')
   revalidatePath('/history')
   return summary
-}
-
-async function buildSummary(tx: Tx, sessionId: string): Promise<SessionSummary> {
-  const prog = await loadProgram(tx)
-  const view = await getSessionView(tx, sessionId, await nextWeekPhaseFor(todayIST(), prog))
-  if (!view) throw new AppError('NOT_FOUND', 'Session not found', 404)
-  const blocks: string[] = []
-  const prs: string[] = []
-  let setCount = 0
-  let beatCount = 0
-  const exercises = view.exercises.map((e) => {
-    const live = e.setLogs
-    setCount += live.length
-    if (e.verdict === 'beat') beatCount += 1
-    for (const s of live) if (s.isPr && s.reps !== null) prs.push(`${e.exercise.name} ${formatLoad(e.exercise, s.load)} × ${s.reps}`)
-    if (live.length > 0) {
-      const segs = toSegments(live)
-      blocks.push(`${serializeHeader({ name: e.exercise.name, lo: e.lo, hi: e.hi, sets: e.sets, marker: e.exercise.unilateral })}\n${serializeSessionLine(segs)}`)
-    }
-    const logged: LoggedSet[] = live.map((s) => ({ setIndex: s.setIndex, load: s.load, reps: s.reps, toFailure: s.toFailure }))
-    const collapsed = e.verdict && e.nextNote ? collapsedLine(e.exercise, logged, { verdict: e.verdict, nextNote: e.nextNote }) : null
-    return { name: e.exercise.name, collapsed }
-  })
-  const [s] = await tx.select({ durationMin: session.durationMin }).from(session).where(eq(session.id, sessionId)).limit(1)
-  return {
-    sessionId,
-    templateName: view.templateName,
-    durationMin: s?.durationMin ?? 0,
-    setCount,
-    beatCount,
-    prs,
-    exercises,
-    shorthand: blocks.join('\n\n'),
-    nextTemplateName: prog.templates[prog.nextIndex]?.name ?? '—',
-  }
-}
-
-function toSegments(sets: { setIndex: number; load: number | null; reps: number | null; toFailure: boolean }[]): ParsedSegment[] {
-  const segs: ParsedSegment[] = []
-  for (const s of [...sets].sort((a, b) => a.setIndex - b.setIndex)) {
-    const load = s.load ?? 0
-    const last = segs[segs.length - 1]
-    const set = { reps: s.reps, toFailure: s.toFailure || s.reps === null }
-    if (last && last.load === load) last.sets.push(set)
-    else segs.push({ load, sets: [set] })
-  }
-  return segs
 }
 
 // ---------- Discard ----------

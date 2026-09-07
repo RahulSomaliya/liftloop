@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { SessionSummary } from '@/actions/session'
+import type { SessionSummary } from '@/db/queries/summary'
 
 export function Summary({ summary }: { summary: SessionSummary }) {
   return (

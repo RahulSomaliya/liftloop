@@ -76,4 +76,9 @@ export function nextEasyWeek(date: string, program: ProgramCfg): { from: string;
   return { from: wp.weekStart, to: wp.weekEnd }
 }
 
+/** Name of the phase of the week AFTER the one containing `date` (for the easy/Ramp next-time note). */
+export function nextWeekPhaseName(date: string, program: ProgramCfg): PhaseName {
+  return weekPhase(programWeek(date, program.startDate) + 1, program).name
+}
+
 export { programWeek }

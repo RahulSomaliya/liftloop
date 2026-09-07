@@ -13,6 +13,8 @@ const TABS = [
 
 export function TabBar() {
   const pathname = usePathname()
+  // The logging screen is full-screen (spec §6.3: nothing else on it); the header carries Back.
+  if (pathname.startsWith('/session/')) return null
   return (
     <nav
       aria-label="Main"

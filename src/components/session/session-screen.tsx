@@ -4,8 +4,9 @@ import { ChevronDown, ChevronLeft, Timer } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { finishSession, setExerciseNote, type SessionSummary } from '@/actions/session'
+import { finishSession, setExerciseNote } from '@/actions/session'
 import type { SessionView } from '@/db/queries/session'
+import type { SessionSummary } from '@/db/queries/summary'
 import type { SetWriteResult } from '@/actions/sets'
 import { primeAudio } from '@/lib/beep'
 import type { LoggedSet } from '@/lib/domain/types'
@@ -141,6 +142,11 @@ export function SessionScreen({ view }: { view: SessionView }) {
 
   const allDone = useMemo(() => slots.every(isComplete), [slots])
 
+  function openCheckin(short: boolean) {
+    toast.dismiss() // undo toasts sit exactly where the sheet's Save button lands
+    setCheckin({ open: true, short })
+  }
+
   if (summary) return <Summary summary={summary} />
 
   return (
@@ -165,7 +171,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
           >
             <Timer size={16} /> {timer.running ? fmtClock(timer.remaining) : timer.done ? 'go' : '—'}
           </button>
-          <button type="button" onClick={() => setCheckin({ open: true, short: false })} className="text-[14px] font-semibold text-muted-foreground">
+          <button type="button" onClick={() => openCheckin(false)} className="text-[14px] font-semibold text-muted-foreground">
             Finish
           </button>
         </div>
@@ -205,7 +211,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
                 onNote={(note) => onNote(slot, note)}
               />
               {i === 0 && !allDone && (
-                <button type="button" onClick={() => setCheckin({ open: true, short: true })} className="py-1 text-center text-[14px] font-medium text-muted-foreground/70">
+                <button type="button" onClick={() => openCheckin(true)} className="py-1 text-center text-[14px] font-medium text-muted-foreground/70">
                   Finish as short session
                 </button>
               )}
@@ -214,7 +220,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
         })}
 
         {allDone && (
-          <button type="button" onClick={() => setCheckin({ open: true, short: false })} className="mt-2 flex h-14 items-center justify-center rounded-2xl bg-primary text-[17px] font-bold text-primary-foreground">
+          <button type="button" onClick={() => openCheckin(false)} className="mt-2 flex h-14 items-center justify-center rounded-2xl bg-primary text-[17px] font-bold text-primary-foreground">
             Finish session
           </button>
         )}
