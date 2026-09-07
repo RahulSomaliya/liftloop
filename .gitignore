@@ -29,3 +29,5 @@ qa/shots/
 *.pem
 /build
 .pglite/
+qa/*.html
+qa/loaders-shots/

@@ -32,6 +32,7 @@ Single-user, mobile-first workout logger. Spec: `docs/superpowers/specs/2026-09-
 | Where is "today"? | `src/lib/domain/time.ts#todayIST` (Asia/Kolkata) — never `new Date()` date math elsewhere |
 | Where is the rest timer's duration? | `template_exercise.rest_seconds ?? exercise.rest_seconds` via `session_exercise.template_exercise_id` |
 | Where does the queue live / drain? | `src/lib/queue/runner.ts`, mounted by `QueueRunner` in `src/app/(app)/layout.tsx` |
+| Where are the loading skeletons / error / 404 screens? | one `loading.tsx` per route segment under `src/app/(app)/` built from `src/components/page-skeleton.tsx`; `(app)/error.tsx`; `(app)/not-found.tsx` + root `not-found.tsx` share `src/components/not-found-view.tsx` |
 
 ## Errors and logging
 
@@ -53,3 +54,4 @@ Server actions throw `AppError` from `src/lib/errors.ts` (code + message); the c
 - Vercel build failed with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (2026-09-07): the lockfile records `autoInstallPeers: false` from this Mac's pnpm config while Vercel defaults to true. The project `.npmrc` pins `auto-install-peers=false` and `package.json#packageManager` pins pnpm — keep both in sync with the lockfile header.
 - `drizzle/*.sql` migrations must be committed: a blanket `*.sql` ignore rule silently kept them out of the repo and the first Vercel build died with "No file drizzle/0000_….sql found" (2026-09-07). Only `*.dump.sql` / `exports/*.sql` are ignored now.
 - Vercel validates env at **build** time: `next build` ("Collecting page data") evaluates `/api/login`, which imports `src/lib/env.ts`, so a short or missing `APP_PASSCODE` / `SESSION_SECRET` fails the build, not just runtime (2026-09-07: `APP_PASSCODE must be at least 8 characters` on the first Neon-backed build). Fix the Production env var value in Vercel → Settings → Environment Variables, then redeploy; nothing in the repo can work around it.
+- Loading skeletons cannot be screenshotted by delaying the RSC request (React keeps the old page until the payload head arrives): run dev with `LIFTLOOP_QA_SLOW_MS=2500` (hook in `src/db/client.ts#getDb`, production no-op) and use `qa/loaders-qa.mjs`. In headless Chrome the Next dev-tools bubble covers the Home tab — click nav links via JS, not coordinates (2026-09-07).

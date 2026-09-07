@@ -46,7 +46,13 @@ export async function createDb(url = process.env.DATABASE_URL): Promise<{ db: Db
 
 let creating: Promise<{ db: Db; close: () => Promise<void> }> | null = null
 
+// QA hook: `LIFTLOOP_QA_SLOW_MS=2500 pnpm dev` holds every page's first DB access so the
+// `loading.tsx` skeletons stay on screen long enough to screenshot (qa/loaders-qa.mjs). Without it
+// PGlite answers in a few ms and the fallback is never visible. Ignored in production builds.
+const qaSlowMs = process.env.NODE_ENV === 'production' ? 0 : Number(process.env.LIFTLOOP_QA_SLOW_MS ?? 0)
+
 export async function getDb(): Promise<Db> {
+  if (qaSlowMs > 0) await new Promise((r) => setTimeout(r, qaSlowMs))
   if (g.__liftloopDb) return g.__liftloopDb.db
   creating ??= createDb().then((c) => {
     g.__liftloopDb = { db: c.db, close: c.close }
