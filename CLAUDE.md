@@ -44,3 +44,9 @@ Server actions throw `AppError` from `src/lib/errors.ts` (code + message); the c
 - Vitest 5 needs `vite` as a dev dependency (peer), otherwise `vitest run` fails to start.
 - `.pglite/` (local DB) must stay gitignored — it is personal data.
 - `src/lib/env.ts` imports `server-only`; scripts run under `tsx` (`src/db/*.ts`) must read `process.env` directly instead.
+- `getDb()` must stay cached on `globalThis` (not module scope): Next dev evaluates `src/db/client.ts` once per bundle, and two PGlite instances on the same `.pglite/` dir see different data and then abort with `RuntimeError: Aborted()`. Symptom seen: `/api/backup` returned zero sessions while pages showed them (2026-09-07). If `.pglite/` ever aborts, `pnpm db:reset`.
+- Never build a date string like `YYYY-MM-31`: Postgres rejects it (September calendar 500, 2026-09-07). Compute the real last day.
+- Sonner toasts sit exactly where a bottom sheet's primary button lands on a 390 px phone; dismiss toasts (`toast.dismiss()`) before opening the check-in sheet and scroll targets to centre in QA scripts.
+- PGlite must be in `serverExternalPackages` (next.config.ts) or its wasm loader breaks under Turbopack bundling.
+- Do not add `export type { … }` to a `'use server'` module — Next's action bundler fails with "Export … doesn't exist in target module"; import types from the query module instead.
+

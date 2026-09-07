@@ -196,8 +196,10 @@ export interface MonthDot {
 
 /** One entry per live session in `yearMonth` ("YYYY-MM"), for the calendar (spec §6.5). */
 export async function monthDots(db: Db, yearMonth: string): Promise<MonthDot[]> {
+  const [y, m] = yearMonth.split('-').map(Number)
   const from = `${yearMonth}-01`
-  const to = `${yearMonth}-31`
+  // Real last day of the month: "-31" is an invalid date for most months and Postgres rejects it.
+  const to = `${yearMonth}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`
   const rows = await db
     .select({ id: session.id, date: session.date, type: session.type, source: session.source, finishedAt: session.finishedAt, kind: template.kind })
     .from(session)

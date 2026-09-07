@@ -155,6 +155,7 @@ await shot('10-session-all-done', 'Every card collapsed; Finish session button v
 await shot('11-session-desktop', 'Session on desktop width', { w: 1440, h: 900 })
 await clickText('Finish session')
 await page.waitForSelector('button::-p-text(Save & finish)', { visible: true })
+await sleep(600)
 await clickText('Good')
 await click('button[aria-label="Left shoulder more"]')
 await sleep(200)
@@ -192,13 +193,111 @@ const reportOk = reportText.startsWith('# LiftLoop report') && reportText.includ
 current.shots[current.shots.length - 1].note += reportOk ? ' · report text verified' : ' · REPORT TEXT WRONG'
 if (!reportOk) current.shots[current.shots.length - 1].check = 'fail'
 
+
+// ---------- Session extras: swap, type it instead, short session ----------
+group('Session extras (Phase 2)')
+await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Start Pull A')])
+await clickText('swap')
+await page.waitForSelector('button::-p-text(Assisted Pull-Up Machine)', { visible: true })
+await shot('22-swap-sheet', 'Swap sheet for Pull-Ups: Assisted Pull-Up Machine, Lat Pulldown')
+await clickText('Assisted Pull-Up Machine')
+await page.waitForFunction(() => document.body.textContent.includes('swapped from'), { timeout: 15000 })
+await sleep(600)
+await shot('23-swapped', 'Card now Assisted Pull-Up Machine, "swapped from" line, goal recomputed')
+await clickText('type it instead')
+await page.type('input[aria-label="Shorthand for this exercise"]', '20.8.8')
+await clickText('Log')
+await page.waitForFunction(() => document.body.textContent.includes('20 kg assist × 8·8'), { timeout: 15000 })
+await sleep(300)
+await shot('24-type-it-instead', 'Shorthand "20.8.8" logged both sets; card collapsed with verdict')
+await clickText('Finish as short session')
+await page.waitForSelector('button::-p-text(Save & finish)', { visible: true })
+await sleep(600)
+await page.waitForFunction(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Save & finish'); return b && !b.disabled })
+await clickText('Save & finish')
+await page.waitForSelector('h1::-p-text(done)', { visible: true, timeout: 15000 })
+await shot('25-short-summary', 'Short session summary (Pull A, 1 exercise) · Next up Legs A')
+
+// ---------- Home menu ----------
+group('Home menu (Phase 2)')
+await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
+await click('button[aria-label="More actions"]')
+await page.waitForSelector('button::-p-text(Log a walk day)', { visible: true })
+await shot('26-home-menu', 'Actions sheet: different template, walk day, easy week')
+await clickText('Log a walk day')
+await page.waitForSelector('button::-p-text(Save walk)', { visible: true })
+await shot('27-walk-sheet', 'Walk day sheet, 20 min default')
+await clickText('Save walk')
+await page.waitForFunction(() => document.body.textContent.includes('+1 walk'), { timeout: 15000 })
+await sleep(300)
+await shot('28-home-walk', 'Home shows 2/4 this week · +1 walk; Next up Legs A')
+
+// ---------- Body ----------
+group('Body (Phase 2)')
+await page.goto(`${BASE}/body`, { waitUntil: 'networkidle0' })
+await page.type('input[aria-label="Waist in centimetres"]', '84')
+await page.keyboard.press('Tab')
+await sleep(600)
+await click('button[aria-pressed]:has(span)')
+await sleep(600)
+await shot('29-body', 'Body: weight 73.6 with 7-day avg, waist 84, sleep, protein, cardio, last entries')
+
+// ---------- History extras ----------
+group('History extras (Phase 2)')
+await page.goto(`${BASE}/history?view=calendar`, { waitUntil: 'networkidle0' })
+await shot('30-calendar', 'Month calendar with kind-coloured dots')
+await page.goto(`${BASE}/history`, { waitUntil: 'networkidle0' })
+const pushALink = await page.evaluateHandle(() => [...document.querySelectorAll('a[href^="/history/"]')].find((a) => a.textContent.includes('Push A')))
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), pushALink.asElement().click()])
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Edit', 'a')])
+await shot('31-history-edit', 'Edit mode: load/reps inputs, save and delete per set, delete session')
+await click('button[aria-label="Delete set"]')
+await page.waitForFunction(() => document.body.textContent.includes('Set deleted'), { timeout: 10000 })
+await sleep(300)
+await shot('32-history-delete-undo', 'Set deleted with Undo toast')
+await clickText('Undo')
+await sleep(800)
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Done', 'a')])
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('a[href^="/exercise/"]')])
+await shot('33-exercise-detail', 'Exercise detail: best set, history lines, settings')
+
+// ---------- Import ----------
+group('Import (Phase 2)')
+await page.goto(`${BASE}/more/import`, { waitUntil: 'networkidle0' })
+await page.type('textarea[aria-label="Shorthand notes"]', 'Barbell RDL 8-10 x 3\n25.10.10.10\n50.8.8.8\n\nReverse pec deck 15-20 x 2\n20.18.17\n20.20.20\n\nMystery Lift 10 x 2\n5.10.10')
+// React ignores a plain `.value =`; go through the native setter so the controlled input updates.
+await page.$eval('input[type=date]', (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })) }, '2026-08-30')
+await clickText('Preview')
+await page.waitForSelector('button::-p-text(Import)', { visible: true })
+await shot('34-import-preview', 'Preview: RDL + Reverse pec deck matched (alias), Mystery Lift unknown → skip, dates D and D−7')
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Import')])
+await shot('35-history-imported', 'History shows two imported sessions (Aug 23, Aug 30)')
+
+// ---------- Backup, More ----------
+group('Backup & More (Phase 2)')
+await page.goto(`${BASE}/more/backup`, { waitUntil: 'networkidle0' })
+await shot('36-backup', 'Backup: download link, restore with RESTORE confirmation')
+const backupOk = await page.evaluate(async () => { const r = await fetch('/api/backup'); const j = await r.json(); return r.ok && j.app === 'liftloop' && Array.isArray(j.tables.session) && j.tables.session.length >= 3 })
+current.shots[current.shots.length - 1].note += backupOk ? ' · /api/backup JSON verified' : ' · BACKUP JSON WRONG'
+if (!backupOk) current.shots[current.shots.length - 1].check = 'fail'
+await page.goto(`${BASE}/more/program`, { waitUntil: 'networkidle0' })
+await shot('37-program', 'Program view: 6 templates with ranges, supersets (+), rest')
+await page.goto(`${BASE}/more/settings`, { waitUntil: 'networkidle0' })
+await shot('38-settings', 'Settings (read-only): rest defaults, units, plates, rack')
+await page.goto(`${BASE}/more`, { waitUntil: 'networkidle0' })
+await shot('39-more', 'More menu with every row enabled')
+const pwa = await page.evaluate(async () => { const m = await fetch('/manifest.webmanifest'); const j = await m.json(); const sw = await fetch('/sw.js'); const icon = await fetch('/icons/icon-192.png'); return m.ok && j.display === 'standalone' && sw.ok && icon.ok })
+current.shots[current.shots.length - 1].note += pwa ? ' · manifest + sw.js + icon 200' : ' · PWA ASSETS MISSING'
+if (!pwa) current.shots[current.shots.length - 1].check = 'fail'
+
 // ---------- Auth guard ----------
 group('Auth guard')
 const client = await page.createCDPSession()
 await client.send('Network.clearBrowserCookies')
 await page.goto(`${BASE}/history`, { waitUntil: 'networkidle0' })
 const redirected = page.url().includes('/login')
-await shot('21-signed-out', redirected ? 'Cookie cleared → /history redirects to /login' : 'AUTH GUARD FAILED', { note: redirected ? '' : 'expected redirect to /login' })
+await shot('40-signed-out', redirected ? 'Cookie cleared → /history redirects to /login' : 'AUTH GUARD FAILED', { note: redirected ? '' : 'expected redirect to /login' })
 if (!redirected) current.shots[current.shots.length - 1].check = 'fail'
 
 await browser.close()

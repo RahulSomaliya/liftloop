@@ -79,7 +79,9 @@ Fork the repo, do the Deploy steps above with your own Vercel + Neon + passcode,
 
 ## Status
 
-Phase 1 (core): sign-in, seeded program, Home (loop, phase, week dots, sleep + weight quick entry), goal-first session logging with a durable write queue, History, coach export. Phase 2 (Body screen, notes import, JSON backup, PWA, swap/short/walk/easy-week, PR badges) and Phase 3 (charts, program editor, offline) follow the plan in `docs/superpowers/plans/`.
+- **Phase 1 (core)** — done: sign-in, seeded program, Home (loop, phase, week dots, sleep + weight quick entry), goal-first session logging with a durable write queue, History, coach export.
+- **Phase 2** — done: Body screen, walk days, start a different template, manual easy weeks, discard/undo, swap, "type it instead", PR badges, wake lock, History calendar + set editing + session delete, Exercise detail, notes-text import, JSON backup/restore, PWA (manifest, icons, service worker), Share, Program/Settings/About.
+- **Phase 3 (v1.1)** — next: progress charts, weekly sets per muscle, adherence heatmap, program + gym-config editor, offline session screen, optional token export endpoint.
 
 ## License
 

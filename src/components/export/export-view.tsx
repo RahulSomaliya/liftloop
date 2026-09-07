@@ -3,7 +3,7 @@
 import { Copy, Share } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { recordExport } from '@/actions/export'
 import { cn } from '@/lib/utils'
@@ -21,7 +21,11 @@ export function ExportView({ text, from, to, preset, sessions, walks }: { text: 
   const [cFrom, setCFrom] = useState(from)
   const [cTo, setCTo] = useState(to)
   const [busy, setBusy] = useState(false)
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  // Decided after mount: the server cannot know, and a mismatched `disabled` breaks hydration.
+  const [canShare, setCanShare] = useState(false)
+  useEffect(() => {
+    setCanShare(typeof navigator.share === 'function')
+  }, [])
 
   async function share() {
     setBusy(true)

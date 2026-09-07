@@ -25,7 +25,11 @@ function pgliteDir(url = process.env.DATABASE_URL): string | undefined {
   return target === 'memory' ? undefined : target
 }
 
-let cached: { db: Db; close: () => Promise<void> } | null = null
+// Cached on globalThis, not at module scope: Next's dev server evaluates this module once per
+// bundle (pages, route handlers, actions) and HMR re-evaluates it — each copy would open its own
+// PGlite on the same directory and see a different database (seen as an empty /api/backup while
+// pages showed sessions). One process, one client.
+const g = globalThis as typeof globalThis & { __liftloopDb?: { db: Db; close: () => Promise<void> } | null }
 
 /** Creates a fresh, uncached client (tests use this for isolated in-memory databases). */
 export async function createDb(url = process.env.DATABASE_URL): Promise<{ db: Db; close: () => Promise<void>; kind: DbKind }> {
@@ -40,10 +44,13 @@ export async function createDb(url = process.env.DATABASE_URL): Promise<{ db: Db
   return { db, close: () => pool.end(), kind: 'neon' }
 }
 
+let creating: Promise<{ db: Db; close: () => Promise<void> }> | null = null
+
 export async function getDb(): Promise<Db> {
-  if (!cached) {
-    const c = await createDb()
-    cached = { db: c.db, close: c.close }
-  }
-  return cached.db
+  if (g.__liftloopDb) return g.__liftloopDb.db
+  creating ??= createDb().then((c) => {
+    g.__liftloopDb = { db: c.db, close: c.close }
+    return g.__liftloopDb
+  })
+  return (await creating).db
 }
