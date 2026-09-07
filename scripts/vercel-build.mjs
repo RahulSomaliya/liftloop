@@ -5,6 +5,10 @@
 import { execSync } from 'node:child_process'
 
 const isProd = process.env.VERCEL_ENV === 'production'
+if (isProd && !process.env.DATABASE_URL) {
+  console.error('\nDATABASE_URL is not set. Connect the Neon integration first: Vercel project → Storage → Create Database → Neon. Then redeploy.\n')
+  process.exit(1)
+}
 const steps = isProd ? ['pnpm db:migrate', 'pnpm db:seed', 'pnpm build'] : ['pnpm build']
 for (const cmd of steps) {
   console.log(`\n▶ ${cmd}`)

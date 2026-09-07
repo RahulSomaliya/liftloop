@@ -14,7 +14,9 @@ next-env.d.ts
 # data — never commit personal data or DB dumps
 exports/
 *.dump.json
-*.sql
+# DB dumps only — drizzle/*.sql migrations MUST be committed (Vercel needs them at build time)
+*.dump.sql
+exports/*.sql
 *.dump
 
 # tooling
