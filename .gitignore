@@ -1,0 +1,24 @@
+# deps / build
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# env — never commit secrets (public repo, private data)
+.env
+.env.*
+!.env.example
+
+# data — never commit personal data or DB dumps
+exports/
+*.dump.json
+*.sql
+*.dump
+
+# tooling
+.vercel/
+.DS_Store
+coverage/
+qa/shots/
