@@ -291,13 +291,49 @@ const pwa = await page.evaluate(async () => { const m = await fetch('/manifest.w
 current.shots[current.shots.length - 1].note += pwa ? ' · manifest + sw.js + icon 200' : ' · PWA ASSETS MISSING'
 if (!pwa) current.shots[current.shots.length - 1].check = 'fail'
 
+
+// ---------- Phase 3: progress, editor, token endpoint ----------
+group('Progress & editor (Phase 3)')
+await page.goto(`${BASE}/progress`, { waitUntil: 'networkidle0' })
+await shot('41-progress', 'Progress: 12-week adherence heatmap, hard sets vs target, exercise list')
+await shot('42-progress-desktop', 'Progress on desktop', { w: 1440, h: 900 })
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('a[href^="/exercise/"]')])
+await sleep(800)
+await shot('43-exercise-chart', 'Exercise detail with the progress chart section')
+await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Edit', 'a')])
+await shot('44-exercise-edit', 'Exercise editor form: load type, unit, increment, muscles, swaps, defaults')
+await page.goto(`${BASE}/more/program?edit=1`, { waitUntil: 'networkidle0' })
+await shot('45-program-editor', 'Program editor: per-entry sets/lo/hi/rest/superset, reorder, archive, add')
+const setsInput = await page.$('input[aria-label="Sets"]')
+await setsInput.click({ clickCount: 3 })
+await setsInput.type('4')
+await clickText('Save')
+await page.waitForFunction(() => document.body.textContent.includes('Entry saved'), { timeout: 10000 })
+await sleep(300)
+await shot('46-program-entry-saved', 'First entry saved with 4 sets (toast)')
+await page.goto(`${BASE}/more/settings`, { waitUntil: 'networkidle0' })
+await shot('47-settings-gym', 'Settings with the editable gym config form')
+expect401 = true
+const tokenChecks = await page.evaluate(async () => {
+  const ok = await fetch('/api/coach-export?token=qa-token-0123456789-0123456789-0123456789&days=14')
+  const text = await ok.text()
+  const bad = await fetch('/api/coach-export?token=nope')
+  const none = await fetch('/api/coach-export')
+  return { ok: ok.status === 200 && text.startsWith('# LiftLoop report'), bad: bad.status === 401, none: none.status === 401 }
+})
+expect401 = false
+consoleErrors = consoleErrors.filter((e) => !/401/.test(e))
+const tokenOk = tokenChecks.ok && tokenChecks.bad && tokenChecks.none
+current.shots[current.shots.length - 1].note += tokenOk ? ' · /api/coach-export token: 200 md, wrong 401, missing 401' : ` · TOKEN ENDPOINT WRONG ${JSON.stringify(tokenChecks)}`
+if (!tokenOk) current.shots[current.shots.length - 1].check = 'fail'
+
 // ---------- Auth guard ----------
 group('Auth guard')
 const client = await page.createCDPSession()
 await client.send('Network.clearBrowserCookies')
 await page.goto(`${BASE}/history`, { waitUntil: 'networkidle0' })
 const redirected = page.url().includes('/login')
-await shot('40-signed-out', redirected ? 'Cookie cleared → /history redirects to /login' : 'AUTH GUARD FAILED', { note: redirected ? '' : 'expected redirect to /login' })
+await shot('48-signed-out', redirected ? 'Cookie cleared → /history redirects to /login' : 'AUTH GUARD FAILED', { note: redirected ? '' : 'expected redirect to /login' })
 if (!redirected) current.shots[current.shots.length - 1].check = 'fail'
 
 await browser.close()

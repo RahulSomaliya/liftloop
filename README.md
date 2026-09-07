@@ -38,6 +38,7 @@ pnpm build       # next build
 | `DATABASE_URL_UNPOOLED` | prod | Direct Neon connection string, used for migrations. Also set by the integration. |
 | `TZ` | recommended | `Asia/Kolkata`. All date logic is explicitly zoned anyway. |
 | `REPORT_OWNER_NAME` | optional | Name printed in the coach report title. Omit on a fork. |
+| `COACH_EXPORT_TOKEN` | optional | ≥ 32 chars. Enables `GET /api/coach-export?token=<it>&days=14` so your coach can fetch the markdown by URL. Unset = route disabled. |
 
 ## Deploy (Vercel + Neon, both free)
 
@@ -52,7 +53,7 @@ Every push to `main` is a production deploy; migrations are additive (expand/con
 ## Database
 
 - Schema: `src/db/schema.ts`. After changing it: `pnpm db:generate` (writes `drizzle/*.sql`), then `pnpm db:migrate`.
-- Seed: `src/db/seed/program-v2.ts` is the program (templates, exercise library, gym config). `pnpm db:seed` is safe to re-run at any time: it upserts the program definition and **never** touches sessions, set logs, the loop pointer or easy-week overrides. Edit that file to change the program until the in-app editor ships.
+- Seed: `src/db/seed/program-v2.ts` is the program (templates, exercise library, gym config). `pnpm db:seed` is safe to re-run at any time: it upserts the program definition and **never** touches sessions, set logs, the loop pointer, easy-week overrides, or any row you edited in the app (More → Program → Edit, Exercise → Edit, Settings).
 - Local reset: `pnpm db:reset` wipes `./.pglite` and re-creates it.
 
 ## The shorthand
@@ -81,7 +82,7 @@ Fork the repo, do the Deploy steps above with your own Vercel + Neon + passcode,
 
 - **Phase 1 (core)** — done: sign-in, seeded program, Home (loop, phase, week dots, sleep + weight quick entry), goal-first session logging with a durable write queue, History, coach export.
 - **Phase 2** — done: Body screen, walk days, start a different template, manual easy weeks, discard/undo, swap, "type it instead", PR badges, wake lock, History calendar + set editing + session delete, Exercise detail, notes-text import, JSON backup/restore, PWA (manifest, icons, service worker), Share, Program/Settings/About.
-- **Phase 3 (v1.1)** — next: progress charts, weekly sets per muscle, adherence heatmap, program + gym-config editor, offline session screen, optional token export endpoint.
+- **Phase 3 (v1.1)** — done: Progress (12-week adherence heatmap, weekly hard sets vs target, per-exercise load/e1RM/volume charts), in-app program + exercise + gym-config editor (archive, never delete; edited rows survive re-seeding), offline session screen (service worker), optional `GET /api/coach-export?token=…&days=14` endpoint.
 
 ## License
 
