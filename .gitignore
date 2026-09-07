@@ -22,3 +22,8 @@ exports/
 .DS_Store
 coverage/
 qa/shots/
+
+# extra
+*.pem
+/build
+.pglite/
