@@ -8,5 +8,5 @@ export default defineConfig({
     passWithNoTests: true,
     env: { DATABASE_URL: 'pglite:memory', TZ: 'UTC' },
   },
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
 })

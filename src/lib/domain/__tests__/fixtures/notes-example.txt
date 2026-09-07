@@ -1,0 +1,26 @@
+Barbell RDL 8-10 x 3
+25.10.10.10
+50.8.8.8
+
+Machine Chest Press 8-12 x 3
+25.12.12.12
+27.12.9.8
+
+Machine Chest-Supported Row 10-12 x 3
+60.12.12.12
+62.10.9.10
+
+Lying Leg Curl 10-15 x 2
+35.15.15
+40.15.13
+
+Reverse pec deck 15-20 x 2
+20.18.17
+20.20.20
+
+External Rotation (L arm first) 15 x 2
+5.11.11
+5.10.7
+
+Standing bw Calf Raise failure x 2
+.f.f
