@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { Db } from '@/db/client'
 import { exercise, session, sessionExercise, setLog, template } from '@/db/schema'
 import { serializeHeader, serializeSessionLine, type ParsedSegment } from '@/lib/domain/shorthand'
@@ -185,4 +185,24 @@ export async function getSessionDetail(db: Db, id: string): Promise<SessionDetai
     exercises,
     shorthand: blocks.join('\n\n'),
   }
+}
+
+export interface MonthDot {
+  date: string
+  kind: SessionListItem['kind']
+  id: string
+  finished: boolean
+}
+
+/** One entry per live session in `yearMonth` ("YYYY-MM"), for the calendar (spec §6.5). */
+export async function monthDots(db: Db, yearMonth: string): Promise<MonthDot[]> {
+  const from = `${yearMonth}-01`
+  const to = `${yearMonth}-31`
+  const rows = await db
+    .select({ id: session.id, date: session.date, type: session.type, source: session.source, finishedAt: session.finishedAt, kind: template.kind })
+    .from(session)
+    .leftJoin(template, eq(template.id, session.templateId))
+    .where(and(isNull(session.deletedAt), gte(session.date, from), lte(session.date, to)))
+    .orderBy(asc(session.date), asc(session.startedAt))
+  return rows.map((r) => ({ id: r.id, date: r.date, finished: r.finishedAt !== null, kind: r.type === 'walk' ? 'walk' : r.source === 'imported' ? 'imported' : (r.kind ?? 'imported') }))
 }

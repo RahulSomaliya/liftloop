@@ -254,3 +254,25 @@ export async function logWalk(input: { minutes: number; note: string | null }): 
   revalidatePath('/history')
   return { sessionId: row.id }
 }
+
+// ---------- Delete (History) ----------
+
+/** Soft-deletes any live session (finished or not); undo restores it (spec §6.5, §11.4). */
+export async function deleteSession(input: { sessionId: string }): Promise<void> {
+  const id = uuid.parse(input.sessionId)
+  const db = await getDb()
+  await db.update(session).set({ deletedAt: new Date() }).where(and(eq(session.id, id), isNull(session.deletedAt)))
+  revalidatePath('/')
+  revalidatePath('/history')
+}
+
+export async function undoDeleteSession(input: { sessionId: string }): Promise<void> {
+  const id = uuid.parse(input.sessionId)
+  const db = await getDb()
+  const [target] = await db.select({ finishedAt: session.finishedAt }).from(session).where(eq(session.id, id)).limit(1)
+  if (!target) throw new AppError('NOT_FOUND', 'Session not found', 404)
+  if (!target.finishedAt) return undoDiscard({ sessionId: id })
+  await db.update(session).set({ deletedAt: null }).where(eq(session.id, id))
+  revalidatePath('/')
+  revalidatePath('/history')
+}

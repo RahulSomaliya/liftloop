@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { CopyButton } from '@/components/copy-button'
+import { EditSets } from '@/components/history/edit-sets'
 import { getDb } from '@/db/client'
 import { getSessionDetail } from '@/db/queries/history'
 import { formatLoad } from '@/lib/domain/load-format'
@@ -11,8 +12,9 @@ import { markFor } from '@/lib/domain/verdict'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SessionDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ edit?: string }> }) {
   const { id } = await params
+  const editing = (await searchParams).edit === '1'
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
   const db = await getDb()
   const s = await getSessionDetail(db, id)
@@ -34,7 +36,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <Link href="/history" aria-label="Back to History" className="-ml-3 flex size-11 items-center justify-center text-muted-foreground">
           <ChevronLeft size={22} />
         </Link>
-        <h1 className="text-[17px] font-bold">{title}</h1>
+        <h1 className="flex-1 text-[17px] font-bold">{title}</h1>
+        {s.type !== 'walk' && (
+          <Link href={editing ? `/history/${id}` : `/history/${id}?edit=1`} className="flex h-11 items-center rounded-xl px-3 text-[13px] font-semibold text-primary">
+            {editing ? 'Done' : 'Edit'}
+          </Link>
+        )}
       </header>
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
@@ -47,6 +54,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       {s.type === 'walk' ? (
         <p className="text-[14px] text-muted-foreground">Cardio only, loop not advanced.</p>
+      ) : editing ? (
+        <EditSets sessionId={s.id} exercises={s.exercises} />
       ) : (
         <>
           <section className="flex flex-col gap-2">
@@ -76,7 +85,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                   const mark = e.goal ? markFor(e.goal, l.setIndex, l.reps) : null
                   return (
                     <div key={`${e.id}-${l.setIndex}`} className="grid h-10 grid-cols-[1.6fr_0.5fr_0.9fr_0.7fr_0.4fr] items-center gap-2 border-t border-border px-1 text-[14px] tabular-nums">
-                      <span className="truncate font-semibold">{i === 0 ? e.exercise.name : ''}</span>
+                      <span className="truncate font-semibold">{i === 0 ? <Link href={`/exercise/${e.exercise.id}`}>{e.exercise.name}</Link> : ''}</span>
                       <span className="text-muted-foreground/70">{l.setIndex + 1}</span>
                       <span>{formatLoad(e.exercise, l.load)}</span>
                       <span>

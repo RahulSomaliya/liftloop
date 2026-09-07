@@ -2,8 +2,9 @@ import { format } from 'date-fns'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { getDb } from '@/db/client'
-import { listSessions, type SessionListItem } from '@/db/queries/history'
-import { tzDate } from '@/lib/domain/time'
+import { MonthCalendar } from '@/components/history/month-calendar'
+import { listSessions, monthDots, type SessionListItem } from '@/db/queries/history'
+import { todayIST, tzDate } from '@/lib/domain/time'
 import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -26,9 +27,14 @@ function meta(s: SessionListItem): string {
   return parts.join(' · ')
 }
 
-export default async function HistoryPage() {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ view?: string; month?: string }> }) {
+  const sp = await searchParams
+  const today = todayIST()
+  const calendar = sp.view === 'calendar'
+  const month = sp.month && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : today.slice(0, 7)
   const db = await getDb()
-  const sessions = await listSessions(db)
+  const sessions = calendar ? [] : await listSessions(db)
+  const dots = calendar ? await monthDots(db, month) : []
   const groups = new Map<string, SessionListItem[]>()
   for (const s of sessions) {
     const key = format(tzDate(s.date), 'MMMM yyyy')
@@ -39,8 +45,12 @@ export default async function HistoryPage() {
     <main className="flex flex-col px-4 pt-2">
       <header className="flex h-14 items-center justify-between px-1">
         <h1 className="text-[20px] font-bold tracking-[-0.02em]">History</h1>
+        <Link href={calendar ? '/history' : '/history?view=calendar'} className="flex h-11 items-center rounded-xl px-3 text-[13px] font-semibold text-primary">
+          {calendar ? 'List' : 'Calendar'}
+        </Link>
       </header>
-      {sessions.length === 0 && (
+      {calendar && <MonthCalendar yearMonth={month} dots={dots} today={today} />}
+      {!calendar && sessions.length === 0 && (
         <p className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-[14px] text-muted-foreground">
           No sessions yet. Start one from Home and it will show up here.
         </p>

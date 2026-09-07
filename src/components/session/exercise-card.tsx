@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowUp, Check, ChevronDown, Equal, Minus, Plus } from 'lucide-react'
+import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { formatLoad } from '@/lib/domain/load-format'
 import { step, stepDown } from '@/lib/domain/stepping'
@@ -147,7 +148,9 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
   return (
     <section className="flex flex-col gap-3.5 rounded-2xl border border-primary bg-card p-4" aria-label={exercise.name}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[17px] font-bold tracking-[-0.01em]">{exercise.name}</h2>
+        <h2 className="text-[17px] font-bold tracking-[-0.01em]">
+          <Link href={`/exercise/${exercise.id}`}>{exercise.name}</Link>
+        </h2>
         {goal && (
           <span className="whitespace-nowrap text-[13px] tabular-nums text-muted-foreground/70">
             {goal.lo === goal.hi ? goal.hi : `${goal.lo}–${goal.hi}`}
