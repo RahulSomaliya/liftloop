@@ -31,6 +31,7 @@ export default function MorePage() {
         <h1 className="text-[20px] font-bold tracking-[-0.02em]">More</h1>
       </header>
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
+        <Row title="Progress" sub="Adherence, weekly sets, exercise charts" href="/progress" />
         <Row title="Coach export" sub="Markdown report for any range" href="/more/export" />
         <Row title="Import from notes" sub="Paste your shorthand" href="/more/import" />
         <Row title="Backup" sub="JSON export and restore" href="/more/backup" />

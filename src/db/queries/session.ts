@@ -103,7 +103,7 @@ export async function loadTemplateEntries(db: Dbx, templateId: string): Promise<
     .select({ te: templateExercise, ex: exercise })
     .from(templateExercise)
     .innerJoin(exercise, eq(exercise.id, templateExercise.exerciseId))
-    .where(eq(templateExercise.templateId, templateId))
+    .where(and(eq(templateExercise.templateId, templateId), eq(templateExercise.archived, false)))
     .orderBy(asc(templateExercise.orderIndex))
   return rows.map(({ te, ex }) => ({
     templateExerciseId: te.id,

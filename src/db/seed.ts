@@ -3,7 +3,7 @@
 // next_index or easy_week_overrides (that would reset the loop on every deploy). Sessions and
 // set logs are never touched. Usage: pnpm db:seed (also called from tests).
 import 'dotenv/config'
-import { eq, sql } from 'drizzle-orm'
+import { eq, isNull, sql } from 'drizzle-orm'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createDb, type Db } from './client'
@@ -13,10 +13,20 @@ import { exercise, gymConfig, program, template, templateExercise } from './sche
 export async function seedProgram(db: Db): Promise<{ programId: string }> {
   const data = PROGRAM_V2
 
-  // 1. exercises (without swap ids — they need every id first)
+  // Defaults for the v1.1 editor: an exercise's first template appearance in loop order; a
+  // swap-only exercise copies the entry of the first exercise that lists it as a swap.
+  const defaults = new Map<string, { lo: number; hi: number; sets: number }>()
+  for (const t of data.templates) for (const en of t.entries) if (!defaults.has(en.exercise)) defaults.set(en.exercise, { lo: en.lo, hi: en.hi, sets: en.sets })
+  for (const e of data.exercises) for (const swap of e.swaps ?? []) if (!defaults.has(swap) && defaults.has(e.name)) defaults.set(swap, defaults.get(e.name)!)
+
+  // 1. exercises (without swap ids — they need every id first). Rows edited in-app are left alone.
   const idByName = new Map<string, string>()
   for (const e of data.exercises) {
+    const d = defaults.get(e.name)
     const values = {
+      defaultLo: d?.lo ?? null,
+      defaultHi: d?.hi ?? null,
+      defaultSets: d?.sets ?? null,
       name: e.name,
       aliases: e.aliases ?? [],
       loadType: e.loadType,
@@ -33,9 +43,11 @@ export async function seedProgram(db: Db): Promise<{ programId: string }> {
     const [row] = await db
       .insert(exercise)
       .values(values)
-      .onConflictDoUpdate({ target: exercise.name, set: values })
+      .onConflictDoUpdate({ target: exercise.name, set: values, setWhere: isNull(exercise.editedAt) })
       .returning({ id: exercise.id })
-    idByName.set(e.name, row.id)
+    // `returning` is empty when the setWhere guard skipped an edited row: look the id up instead.
+    const id = row?.id ?? (await db.select({ id: exercise.id }).from(exercise).where(eq(exercise.name, e.name)))[0].id
+    idByName.set(e.name, id)
   }
   for (const e of data.exercises) {
     const swapIds = (e.swaps ?? []).map((n) => {
@@ -43,12 +55,12 @@ export async function seedProgram(db: Db): Promise<{ programId: string }> {
       if (!id) throw new Error(`Seed: swap target "${n}" of "${e.name}" is not in the library`)
       return id
     })
-    await db.update(exercise).set({ swapIds }).where(eq(exercise.id, idByName.get(e.name) as string))
+    await db.update(exercise).set({ swapIds }).where(sql`${exercise.id} = ${idByName.get(e.name) as string} and ${exercise.editedAt} is null`)
   }
 
   // 2. gym config singleton
   const gymValues = { id: 1, platesLb: data.gym.platesLb, dumbbellRackLb: data.gym.dumbbellRackLb, stackStepKg: data.gym.stackStepKg, updatedAt: new Date() }
-  await db.insert(gymConfig).values(gymValues).onConflictDoUpdate({ target: gymConfig.id, set: gymValues })
+  await db.insert(gymConfig).values(gymValues).onConflictDoUpdate({ target: gymConfig.id, set: gymValues, setWhere: isNull(gymConfig.editedAt) })
 
   // 3. program: insert-only (next_index / overrides belong to the user)
   let [prog] = await db.select({ id: program.id }).from(program).limit(1)
@@ -101,6 +113,7 @@ export async function seedProgram(db: Db): Promise<{ programId: string }> {
         .onConflictDoUpdate({
           target: [templateExercise.templateId, templateExercise.orderIndex],
           set: { exerciseId, sets: en.sets, lo: en.lo, hi: en.hi, restSeconds: eValues.restSeconds, supersetGroup },
+          setWhere: isNull(templateExercise.editedAt),
         })
     }
   }

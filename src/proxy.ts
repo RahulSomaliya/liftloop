@@ -3,7 +3,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { COOKIE_NAME, verifySession } from '@/lib/auth/session'
 
-const PUBLIC_PREFIXES = ['/login', '/api/login', '/manifest.webmanifest', '/icons/', '/sw.js', '/_next/', '/favicon.ico']
+const PUBLIC_PREFIXES = ['/login', '/api/login', '/api/coach-export', '/manifest.webmanifest', '/icons/', '/sw.js', '/_next/', '/favicon.ico', '/apple-touch-icon.png']
 
 export async function proxy(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl

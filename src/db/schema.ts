@@ -45,6 +45,12 @@ export const exercise = pgTable('exercise', {
   cue: text('cue'),
   notes: text('notes'),
   archived: boolean('archived').notNull().default(false),
+  /** Prefill for new template entries in the editor (v1.1); never read by getGoal. */
+  defaultLo: smallint('default_lo'),
+  defaultHi: smallint('default_hi'),
+  defaultSets: smallint('default_sets'),
+  /** Set by the in-app editor; the seed never overwrites an edited row (spec §10.3). */
+  editedAt: ts('edited_at'),
   createdAt: ts('created_at').notNull().defaultNow(),
 })
 
@@ -53,6 +59,7 @@ export const gymConfig = pgTable('gym_config', {
   platesLb: jsonb('plates_lb').$type<number[]>().notNull(),
   dumbbellRackLb: jsonb('dumbbell_rack_lb').$type<number[]>().notNull(),
   stackStepKg: load('stack_step_kg').notNull(),
+  editedAt: ts('edited_at'),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 })
 
@@ -93,6 +100,9 @@ export const templateExercise = pgTable(
     restSeconds: smallint('rest_seconds'),
     supersetGroup: smallint('superset_group'),
     notes: text('notes'),
+    /** Entries are never deleted (sessions reference them); the editor archives them instead (§2.3.6). */
+    archived: boolean('archived').notNull().default(false),
+    editedAt: ts('edited_at'),
   },
   (t) => [uniqueIndex('template_exercise_order_uq').on(t.templateId, t.orderIndex)],
 )

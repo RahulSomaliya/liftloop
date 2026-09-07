@@ -38,6 +38,17 @@ describe('seedProgram (§10.3, §13)', () => {
     expect(after.nextIndex).toBe(3)
     expect(after.easyWeekOverrides).toEqual([{ from: '2026-09-30', to: '2026-10-02' }])
   })
+  it('never overwrites a row edited in-app, and seeds editor defaults', async () => {
+    const [row] = await db.select().from(exercise).where(eq(exercise.name, 'Cable Face Pull'))
+    expect(row).toMatchObject({ defaultLo: 15, defaultHi: 20, defaultSets: 2 })
+    const [assisted] = await db.select().from(exercise).where(eq(exercise.name, 'Assisted Pull-Up Machine'))
+    expect(assisted).toMatchObject({ defaultLo: 6, defaultHi: 10, defaultSets: 3 }) // copied from Pull-Ups
+    await db.update(exercise).set({ restSeconds: 75, editedAt: new Date() }).where(eq(exercise.id, row.id))
+    await seedProgram(db)
+    const [after] = await db.select().from(exercise).where(eq(exercise.id, row.id))
+    expect(after.restSeconds).toBe(75)
+    expect((await db.select().from(exercise)).length).toBe(30)
+  })
   it('exercise details match §13', async () => {
     const byName = new Map((await db.select().from(exercise)).map((e) => [e.name, e]))
     expect(byName.get('Cable Reverse Fly')?.aliases).toEqual(['Reverse pec deck'])

@@ -11,6 +11,8 @@ const schema = z.object({
   DATABASE_URL: z.string().optional(),
   DATABASE_URL_UNPOOLED: z.string().optional(),
   REPORT_OWNER_NAME: z.string().optional(),
+  /** Optional read-only coach endpoint token (spec §5.2); ≥ 32 chars when set. */
+  COACH_EXPORT_TOKEN: z.string().min(32, 'COACH_EXPORT_TOKEN must be at least 32 characters').optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 })
 

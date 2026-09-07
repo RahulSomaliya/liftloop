@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getDb } from '@/db/client'
 import { exerciseDetail } from '@/db/queries/exercise'
+import { exerciseSeries } from '@/db/queries/progress'
+import { ExerciseChartLazy } from '@/components/progress/exercise-chart-lazy'
 import { formatLoad } from '@/lib/domain/load-format'
 import { tzDate } from '@/lib/domain/time'
 
@@ -12,8 +14,10 @@ export const dynamic = 'force-dynamic'
 export default async function ExercisePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
-  const d = await exerciseDetail(await getDb(), id)
+  const db = await getDb()
+  const d = await exerciseDetail(db, id)
   if (!d) notFound()
+  const series = await exerciseSeries(db, id)
   const ex = d.exercise
   const stepping = ex.increment === null ? 'dumbbell rack' : `+${ex.increment} ${ex.unit}`
   const settings: [string, string][] = [
@@ -45,6 +49,10 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
           <span className="text-[12px] font-medium text-muted-foreground/70">sessions</span>
         </div>
       </div>
+      <section className="rounded-2xl border border-border bg-card p-4">
+        <h2 className="pb-2 text-[13px] font-semibold tracking-wide text-muted-foreground">PROGRESS</h2>
+        <ExerciseChartLazy points={series} unit={ex.unit} assist={ex.progression === 'assist_down'} />
+      </section>
       <section className="flex flex-col">
         <h2 className="px-1 pb-2 text-[13px] font-semibold tracking-wide text-muted-foreground">HISTORY</h2>
         {d.history.length === 0 && <p className="px-1 text-[14px] text-muted-foreground/70">No sessions yet.</p>}

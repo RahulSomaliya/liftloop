@@ -88,6 +88,9 @@ export default async function HomePage() {
         <span className="text-[13px] tabular-nums text-muted-foreground">
           {data.week.done}/{data.week.target} this week{data.week.walks ? ` · +${data.week.walks} walk` : ''}
         </span>
+        <Link href="/progress" className="ml-auto text-[13px] font-semibold text-primary">
+          Progress
+        </Link>
       </div>
 
       <section className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card px-4 py-4">
