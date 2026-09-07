@@ -57,7 +57,7 @@ Weeks are Monday–Sunday in `Asia/Kolkata`. Week 1 starts on the program start 
 3. **Tired rule.** A session can be finished as `short` (first two exercises only). It counts and advances the loop.
 4. **Walk day.** A `walk` session (cardio only, minutes + note) is logged but does not advance the loop.
 5. **Easy week / Ramp.** The session shows 2 sets per exercise and the goal is "match, stop with 4 left". No "beat" language, no ↑/↓ marks, verdict is always `done` — for every mode, including `first_time`.
-6. **No-change rule.** Program edits are rare. Editing (v1.1) must never rewrite or lose history: template entries reference exercises by id; every `session_exercise` snapshots the `sets/lo/hi` and the goal it showed.
+6. **No-change rule.** Program edits are rare. Editing (v1.1) must never rewrite or lose history: template entries reference exercises by id; every `session_exercise` snapshots the effective `sets` (`goal.sets`), the entry's `lo/hi` and the goal it showed.
 
 ## 3. The shorthand (import/export format, and fallback entry)
 
@@ -195,8 +195,8 @@ Paste shorthand blocks (§3), preview, assign dates, save.
 
 - Lines within a block are chronological: the last line is the most recent. Only the last two lines of each block are imported (the brief's "backfill the last two sessions per exercise"); earlier lines are shown greyed out and skipped.
 - Dating: the most recent line of every block defaults to the assigned date; the older line defaults to assigned date − 7 days. Every line's date is editable in the preview.
-- Saving groups lines by final date: one `session` per distinct date (`source = 'imported'`, `type = 'normal'`, `template_id = null`, `advanced_loop = false`, `started_at = finished_at = <date> 12:00 IST`, `duration_min` and check-in fields null, `note = 'Imported from notes'`), holding one `session_exercise` per block line assigned to that date (`goal = null`, `verdict = null`, `next_note = null`, `lo/hi/sets` from the header, `template_exercise_id = null`) and its set logs (`unit` from the exercise, `rev = 1`).
-- Report re-import: a `### YYYY-MM-DD …` line (a comment to the parser, recognised by the importer) sets the default date for the blocks that follow it until the next `###`; if the text after the date names a template, `template_id` is set; walk blocks are skipped.
+- Saving groups lines by final date: one NEW `session` per distinct date (`source = 'imported'`, `order_index` = the block's order within that date; a date that already has a live session of any kind is a preview error for that date and blocks Save until re-dated; `type = 'normal'`, `template_id = null`, `advanced_loop = false`, `started_at = finished_at = <date> 12:00 IST`, `duration_min` and check-in fields null, `note = 'Imported from notes'`), holding one `session_exercise` per block line assigned to that date (`goal = null`, `verdict = null`, `next_note = null`, `lo/hi/sets` from the header, `template_exercise_id = null`) and its set logs (`unit` from the exercise, `rev = 1`).
+- Report re-import: when the paste contains a `## Sessions` heading, the importer feeds the parser only the text from that heading up to the next `## ` heading and discards the rest. A `### YYYY-MM-DD …` line (a comment to the parser, recognised by the importer) sets the default date for the blocks that follow it until the next `###`; if the text after the date names a template, `template_id` is set; walk blocks are skipped. A non-empty, non-comment line before the first header is listed as an error in the preview and skipped.
 - Imported sessions are excluded from Home week dots and from the report's session counts, and are eligible as `last` for goals (§7.4), for PRs (§7.6), for exercise history (§6.4) and in the History list (tagged "imported").
 
 ### 5.4 Non-goals
@@ -225,7 +225,7 @@ Passcode field only. Wrong passcode → inline error. After 5 failures in 15 min
 
 Sticky header: template name, elapsed time, rest timer, "n unsaved" pill when the write queue is non-empty. Exercise cards in template order; superset partners grouped with a "then" connector. One card open at a time; others collapsed to one line.
 
-Open card layout:
+Open card layout (the header's `× sets` is `goal.sets`, so a Ramp card reads `8–12 × 2` with two rows):
 
 ```
 ┌────────────────────────────────────────────┐
@@ -255,7 +255,7 @@ Rules:
 - Note: free text per exercise. Optional warm-up checklist at the top (shown, not logged).
 - Pull-up cards surface the special rules (§13).
 - "Finish as short session" available from the first card. Finish → check-in sheet (sleep prefilled from today's `body_metric`, shoulder 0–10, elbow 0–10, minutes auto, note) → save → summary (sets, PRs, session shorthand, "Next: Push B").
-- Finish is disabled while the write queue is non-empty ("saving 2 sets…"); see §11.3 for the failure policy that guarantees the queue can always drain.
+- Swap, note, check-in and Finish are direct server actions, disabled while this session has queued set writes ("saving 2 sets…"); see §11.2–11.3 for the queue and the failure policy that guarantees it can always drain.
 
 Nothing else on this screen. No "best", no e1RM, no charts, no history list.
 
@@ -331,30 +331,30 @@ Goal = {
 }
 ```
 
-`history` = this exercise's live finished `session_exercise` rows from ANY template (including imported ones), newest first, with set logs, ordered by `session.date` then `session_exercise.created_at`.
+`history` = this exercise's live finished `session_exercise` rows from ANY template (including imported ones), newest first, with set logs, ordered by `session.date`, then `session.started_at`, then `session_exercise.created_at` (an imported row at 12:00 IST never outranks a real session on the same date). `entry` is always read from the current `template_exercise`, never from a `session_exercise` snapshot.
 
 - **History gate:** `history.length === 0` → `first_time`, regardless of phase.
-- **`last`** = the newest history row with `goal.deload !== true` (skip easy-week sessions so progression targets the pre-deload numbers); if every row is a deload row, the newest row.
+- **`last`** = the newest history row with `goal.deload !== true` (a row with `goal = null`, i.e. imported, counts as `deload = false`); skipping easy-week sessions makes progression target the pre-deload numbers. If every row is a deload row, the newest row.
 - **Goal load basis** from `last`: the best load used in that session (`load_up`: highest; `assist_down`: lowest).
-- **`repsPerSet`** = reps of `last`'s sets at that load, in logged order, truncated to `sets` or padded by repeating the last one. Failure sets keep `null`. `ghost = { load: basis, reps: repsPerSet }`.
-- **Hi-test** (`allHitHi`): every non-null entry of `repsPerSet` is `≥ entry.hi` (a padded entry inherits its source), at least one entry is non-null, and the count of `last`'s counted sets at the basis load is `≥ entry.sets`. Otherwise false.
+- **`lastReps`** = reps of `last`'s sets at that load, in logged order, truncated to `sets` or padded by repeating the last one. Failure sets keep `null`. `ghost = { load: basis, reps: lastReps }` is fixed here, before the mode is chosen; each mode below sets only `repsPerSet` / `prefillRepsPerSet` (beat and easy: `repsPerSet = lastReps`).
+- **Hi-test** (`allHitHi`): every non-null entry of `lastReps` is `≥ entry.hi` (a padded entry inherits its source), at least one entry is non-null, and the count of `last`'s counted sets at the basis load is `≥ entry.sets`. Otherwise false.
 - **`step(exercise, load)`**: stack/per_side → `load + increment`; dumbbell → `nextRack(load)`; bodyweight `load ≥ 0` → `nextRack(load)` (0 → 2.5); bodyweight `load < 0` → `min(load + 5, 0)`; assist_down → `max(load − increment, 0)`.
 
 Modes and the exact `line` copy (every `{load}` rendered through `formatLoad`):
 
 - `first_time` — `"First time — pick a weight you can do {hi} with 4 left"`. `load = null` (weight chip empty, tap to set), `prefill = [hi, …]`, `repsPerSet = [hi, …]`, `nextLoad = null`, `ghost = null`. Sets = 2 when `setsOverride === 2`.
-- `easy` — `setsOverride === 2` and history exists: `"Easy day — {load} × {r1} · {r2}, stop with 4 left"`. Sets = 2. Load = basis (Ramp, multiplier 1) or `easyLoad(basis)` (Easy week, multiplier 0.8): stack → `basis × 0.8` rounded to the nearest 5 kg; per_side → rounded to the nearest `increment` multiple; dumbbell / bodyweight-added → `roundDownToRack(basis × 0.8)`, and when that is null (below the rack minimum) → the rack minimum (2.5 lb); bodyweight `load ≤ 0` → unchanged; assist_down → `basis × 1.2` rounded up to 5 kg. `prefill = repsPerSet` with nulls replaced by `hi`. `nextLoad = null`.
+- `easy` — `setsOverride === 2` and history exists: `"Easy day — {load} × {r1} · {r2}, stop with 4 left"`. Sets = 2. Load = basis (Ramp, multiplier 1) or `easyLoad(basis)` (Easy week, multiplier 0.8): stack and per_side → `basis × 0.8` rounded to the nearest multiple of `exercise.increment`, in the exercise's own unit; dumbbell / bodyweight-added → `roundDownToRack(basis × 0.8)`, and when that is null (below the rack minimum) → the rack minimum (2.5 lb); bodyweight `load ≤ 0` → unchanged; assist_down → `basis × 1.2` rounded up to 5 kg. `prefill = repsPerSet` with nulls replaced by `hi`. `nextLoad = null`.
 - `beat` — normal phase, hi-test false: `"Beat {load} × {r1} · {r2} · {r3}"` (failure entries render `f`), `load = basis`, `prefill = min(r_i + 1, hi)` (null → `hi`), `nextLoad = step(load)`. Assist: `"Beat 20 kg assist × 8 · 7 · 6"`.
 - `new_weight` — normal phase, hi-test true: `load = step(basis)`, `nextLoad = step(load)`, `prefill = [lo, …]`, `repsPerSet = [lo, …]`. Line `"New weight {load} × {lo}+ each set"`. Assist_down: `"Less assist: {load} × {lo}+ each set"`, and when `basis ≤ 10` the line is `"Try Pull-Ups — no assist (or {load} × {lo}+)"`; the chips still hold `load` (`0 kg assist` is a valid chip value at the floor).
 
 ### 7.5 Verdicts (`verdict.ts`)
 
 ```
-getVerdict({ goal, loggedSets, exercise, nextWeekIsEasy }) →
+getVerdict({ goal, loggedSets, exercise, nextWeekPhase }) →   // nextWeekPhase = weekPhase(programWeek(session.date) + 1).name
   { verdict: 'beat' | 'matched' | 'under' | 'done', mark: ('up' | 'eq' | 'down' | null)[], nextNote: string, allHitHi: boolean }
 ```
 
-- **Easy/Ramp:** when `goal.setsOverride === 2` (any mode) → `verdict = 'done'`, every mark `null`, `nextNote = nextWeekIsEasy ? "easy week continues" : "back to normal next week"` (`nextWeekIsEasy = weekPhase(currentWeek + 1).isEasyWeek`, passed in by the caller).
+- **Easy/Ramp:** when `goal.setsOverride === 2` (any mode) → `verdict = 'done'`, every mark `null`, `nextNote` by `nextWeekPhase`: `'Easy'` → `"easy week continues"`; `'Ramp'` → `"2 sets again next week"`; otherwise `"back to normal next week"`.
 - Otherwise, with `effectiveLoad = goal.load ?? loggedSets[0].load`:
   - `goalTotal = Σ (goal.repsPerSet[i] ?? goal.prefillRepsPerSet[i])` (a failure goal entry counts as `hi`; first_time: `hi × sets`).
   - `total` = Σ reps of counted logged sets at `effectiveLoad` (a logged set with `reps = null` contributes 0).
@@ -420,15 +420,12 @@ Default range: last 14 days ending today. Dense, plain markdown, no HTML.
 
 ## Sessions
 ### 2026-09-07 Mon — Push A — 41 min — sleep: good — shoulder: 0 — elbow: 0
-Machine Chest Press 8-12 x 2
-25.12.12
+Pec Fly Machine 8-12 x 2
+(swapped from Machine Chest Press)
+20.12.12
 
 Half-Kneeling Landmine Press 8-12/arm x 2
 10.10.10
-
-Pec Fly Machine 10-12 x 2
-(swapped from Machine Chest Press)
-20.12.12
 
 …
 Note: felt easy, as planned.
@@ -484,7 +481,7 @@ Rendering rules:
 - `template` — id, program_id, name, kind (`push | pull | legs`), order_index, notes. Unique `(program_id, order_index)`.
 - `template_exercise` — id, template_id, exercise_id, order_index, sets, lo, hi, rest_seconds smallint nullable, superset_group smallint nullable, notes. Unique `(template_id, order_index)`.
 - `session` — id (client-supplied uuid for logged sessions), date (IST date string), started_at, finished_at nullable (null = in progress), template_id nullable, type (`normal | short | walk`), source (`logged | imported`), duration_min nullable, sleep_good bool nullable, shoulder_pain smallint nullable, elbow_pain smallint nullable, advanced_loop bool, note, deleted_at nullable, created_at.
-- `session_exercise` — id, session_id, exercise_id, template_exercise_id nullable, order_index, sets smallint, lo smallint nullable, hi smallint nullable, goal jsonb nullable (the §7.4 Goal as shown; null for imported rows), verdict (`beat | matched | under | done`) nullable, next_note text nullable, swapped_from_exercise_id nullable, note, created_at. Unique `(session_id, order_index)`.
+- `session_exercise` — id, session_id, exercise_id, template_exercise_id nullable, order_index, sets smallint, lo smallint nullable, hi smallint nullable, goal jsonb nullable (the §7.4 Goal as shown; null for imported rows), verdict (`beat | matched | under | done`) nullable, next_note text nullable, swapped_from_exercise_id nullable, note, created_at. Unique `(session_id, order_index)`. `sets` is the effective set count the session actually prescribed: `goal.sets` for logged rows (so 2 in Ramp/Easy), the header's `<sets>` for imported rows. `lo/hi` are the entry's range (identical to `goal.lo/hi`); the report header renders `x <sets>` from this column.
 - `set_log` — id, session_exercise_id, set_index, rev int not null default 1, load numeric nullable, reps smallint nullable, to_failure bool, unit (`lb | kg`), is_pr bool, deleted_at nullable, created_at, updated_at. Unique `(session_exercise_id, set_index)`.
 - `body_metric` — id, date (IST date, unique), weight_kg numeric nullable, waist_cm numeric nullable, sleep_good bool nullable, protein_hit bool nullable, cardio_type text nullable, cardio_min smallint nullable, note.
 - `export_log` — id, from_date, to_date, created_at.
@@ -536,14 +533,14 @@ docs/superpowers/               specs and plans
 
 ### 11.1 Session lifecycle
 
-- **Start** is one server action `startSession({ id: clientUuid, templateId, advancesLoop })` that inserts the `session` row plus one `session_exercise` per template entry (with `sets/lo/hi` snapshot and the goal computed server-side) in a single transaction, `ON CONFLICT (session.id) DO NOTHING` and returning the existing rows on retry. It refuses when another live in-progress session exists. Start requires network (the session page is server-rendered); on failure the button shows a retry.
+- **Start** is one server action `startSession({ id: clientUuid, templateId, advancesLoop })` that inserts the `session` row plus one `session_exercise` per template entry (the goal computed server-side; the `sets` snapshot is `goal.sets`, phase-adjusted, NOT `template_exercise.sets`; `lo/hi` from the entry) in a single transaction, `ON CONFLICT (session.id) DO NOTHING` and returning the existing rows on retry. It refuses when another live in-progress session exists. Start requires network (the session page is server-rendered); on failure the button shows a retry.
 - **Swap** and **note** update the existing `session_exercise` row in place.
 - **Finish** is one transaction (session fields, loop pointer, today's `body_metric.sleep_good`) and re-submittable: it writes absolute values only, and a second submit for an already-finished session is a no-op that returns the summary.
 
 ### 11.2 Set writes and the queue
 
-- A set's identity is `(session_exercise_id, set_index)`. Every set write (✓, edit, delete, restore, "type it instead") carries the row's next `rev` (client-tracked, starting at 1) and is applied as an upsert `ON CONFLICT (session_exercise_id, set_index) DO UPDATE … WHERE set_log.rev < excluded.rev`, so a stale replay can never overwrite a newer edit and a retried write is idempotent.
-- **Every write goes through one FIFO queue** (`liftloop.queue.v1` in localStorage) with a single operation in flight; no write is sent directly while older operations exist. The UI updates optimistically from the queue's view. The runner is mounted in the authed layout and runs on every authed screen; it drains on mount, on `online`, on `visibilitychange` to visible, and every 10 s while non-empty. The sticky header shows an "n unsaved" pill; Finish is disabled until the queue drains.
+- A set's identity is `(session_exercise_id, set_index)`. Every set write carries `rev = (the row's rev as last loaded from the server, or 0 when no row exists) + 1`; every read that feeds an editable set row (session page, History detail) selects `set_log.rev`. The write is an upsert `ON CONFLICT (session_exercise_id, set_index) DO UPDATE … WHERE set_log.rev < excluded.rev` whose SET list is: for ✓ / edit / "type it instead" — `load, reps, to_failure, unit, rev, updated_at, deleted_at = NULL`; for delete — `deleted_at = now(), rev, updated_at`; for restore — `deleted_at = NULL, rev, updated_at`. So a stale replay can never overwrite a newer edit and a retried write is idempotent. The action returns `{ applied, row }`; on `applied = false` the runner re-enqueues the same payload once with `rev = row.rev + 1` (the user's latest intent wins on the single device), and if that is refused too it drops the op with the §11.3 "could not be saved" toast.
+- **Every set write (upsert, delete, restore) goes through one FIFO queue** (`liftloop.queue.v1` in localStorage) with a single operation in flight; no set write is sent directly while older operations exist. Everything else — Start, swap, exercise note, check-in/Finish, Discard, Home quick entries — is a direct server action; swap, note, check-in and Finish are disabled while the queue holds writes for that session, and Home quick entries are unordered with respect to it. The UI updates optimistically from the queue's view. The runner is mounted in the authed layout and runs on every authed screen; it drains on mount, on `online`, on `visibilitychange` to visible, and every 10 s while non-empty. The sticky header shows an "n unsaved" pill; Finish is disabled until the queue drains.
 - Reload, phone lock or tab death resumes the in-progress session from the DB plus any queued writes (the queue view is applied over the server rows).
 
 ### 11.3 Queue failure policy
@@ -557,7 +554,7 @@ docs/superpowers/               specs and plans
 
 - Soft deletes on `session` and `set_log`; undo toasts restore exactly the touched rows. All reads filter live rows (§9).
 - JSON export is a full dump of every table except `login_attempt`, soft-deleted rows included, with metadata `{ app: 'liftloop', schema_version: <latest migration tag>, exported_at }`.
-- JSON import refuses unless the database is **empty of user data**: zero rows in `session`, `session_exercise`, `set_log`, `body_metric`, `export_log` (seeded config rows may exist). It refuses on `schema_version` mismatch. It runs in one transaction: delete all rows from `set_log`, `session_exercise`, `session`, `body_metric`, `export_log`, `template_exercise`, `template`, `program`, `exercise`, `gym_config` (FK order), then insert every dump row verbatim with its original ids in the order `gym_config → exercise → program → template → template_exercise → session → session_exercise → set_log → body_metric → export_log`, then commit; any error rolls back and leaves the prior state untouched. The next deploy's seed then sees matching rows and changes nothing that matters.
+- JSON import runs straight away when the database is **empty of user data** (zero rows in `session`, `session_exercise`, `set_log`, `body_metric`, `export_log`; seeded config rows may exist); otherwise the screen requires typing `RESTORE` to confirm a wipe-and-restore. It refuses a dump whose `schema_version` is NEWER than the current migration tag; an older dump is accepted because migrations are expand-only (new columns are nullable or defaulted). It runs in one transaction: delete all rows from `set_log`, `session_exercise`, `session`, `body_metric`, `export_log`, `template_exercise`, `template`, `program`, `exercise`, `gym_config` (FK order), then insert every dump row verbatim with its original ids in the order `gym_config → exercise → program → template → template_exercise → session → session_exercise → set_log → body_metric → export_log`, then commit; any error rolls back and leaves the prior state untouched. The next deploy's seed then sees matching rows and changes nothing that matters.
 
 ## 12. Source control, hosting, secrets
 
@@ -673,7 +670,7 @@ After each phase: run tests, update README, push, list what changed.
 5. Rest: `template_exercise.rest_seconds` (120 at slot 0) with `exercise.rest_seconds` (90) as fallback.
 6. Goal engine: `load` is always the weight to lift this session; `nextLoad = step(load)`; `repsPerSet` truncation/padding rule; hi-test defined over `repsPerSet` with the counted-set count; failure entries handled in goal, prefill, total and marks; `deload` flag and the `last` rule that skips easy-week sessions; `setsOverride` snapshot makes every Ramp/Easy verdict `done` including `first_time`; bodyweight easy loads ≤ 0 unchanged, rack loads clamp to the rack minimum; negative bodyweight loads step by 5 lb; `formatLoad` used in every line/chip/note/report cell; assist threshold unified at `≤ 10 kg` with `increment` stored positive.
 7. Rack ladder extended above the max in 5 lb steps; the contradictory `load ± 5` clauses removed.
-8. Verdict `nextNote` uses `step(effectiveLoad)`; `nextWeekIsEasy` uses `weekPhase`.
+8. Verdict `nextNote` uses `step(effectiveLoad)`; the easy/Ramp note uses `weekPhase(next week).name` ("2 sets again next week" during Ramp week 1).
 9. `weekPhase` for week-granular consumers; partial weeks labelled `W3*`; phase bullet lists all phases in range; `< 3 sessions` flag on complete weeks only.
 10. `weightAvg7` defined (§7.11); PR rule and `is_pr` recomputation defined (§7.6); Best set defined; report rendering rules (verdict labels, row order, avg/max, owner name env var); `export_log` written by Copy/Share only, after success; nudge and flag thresholds defined.
 11. Report example regenerated for Ramp (2 sets, `easy 42`, Sunday fixed); `(swapped from …)` and `Note:` are comment lines; blank line between blocks.
@@ -683,3 +680,4 @@ After each phase: run tests, update README, push, list what changed.
 15. Login rate limit is global and atomic (advisory lock in one statement); `APP_PASSCODE` ≥ 8 chars enforced at boot.
 16. Scope/phase reconciliation (§14 lists every v1 screen); gym config editing is v1.1.
 17. Local dev/tests on PGlite (no Docker, no Neon needed); production on `neon-serverless` Pool for transactions.
+18. Second pass (12 findings): `session_exercise.sets` = `goal.sets`; `entry` always from `template_exercise`; easy rounding by `increment` in the exercise's unit; `ghost` from `lastReps`; imported rows count as non-deload; report example swapped block fixed; upsert SET lists spelled out incl. `deleted_at = NULL`; `rev` derived from the loaded row with a one-shot re-submit on `applied = false`; only set writes are queued, other actions are direct and gated; import refuses dates with an existing session and only parses the `## Sessions` section of a report; restore accepts older dumps and uses a typed confirmation when user data exists.
