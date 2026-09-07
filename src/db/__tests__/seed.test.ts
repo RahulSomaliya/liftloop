@@ -48,6 +48,10 @@ describe('seedProgram (§10.3, §13)', () => {
     const [after] = await db.select().from(exercise).where(eq(exercise.id, row.id))
     expect(after.restSeconds).toBe(75)
     expect((await db.select().from(exercise)).length).toBe(30)
+    // clear the edit so the seed is authoritative again for the tests below
+    await db.update(exercise).set({ editedAt: null }).where(eq(exercise.id, row.id))
+    await seedProgram(db)
+    expect((await db.select().from(exercise).where(eq(exercise.id, row.id)))[0].restSeconds).toBe(90)
   })
   it('exercise details match §13', async () => {
     const byName = new Map((await db.select().from(exercise)).map((e) => [e.name, e]))

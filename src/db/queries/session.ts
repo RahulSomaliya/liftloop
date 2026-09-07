@@ -88,6 +88,7 @@ export async function loadWeekBodyWeight(db: Dbx, date: string): Promise<number 
 }
 
 export interface TemplateEntryRow {
+  archived: boolean
   templateExerciseId: string
   orderIndex: number
   sets: number
@@ -98,14 +99,15 @@ export interface TemplateEntryRow {
   exercise: ExerciseCfg
 }
 
-export async function loadTemplateEntries(db: Dbx, templateId: string): Promise<TemplateEntryRow[]> {
+export async function loadTemplateEntries(db: Dbx, templateId: string, opts: { includeArchived?: boolean } = {}): Promise<TemplateEntryRow[]> {
   const rows = await db
     .select({ te: templateExercise, ex: exercise })
     .from(templateExercise)
     .innerJoin(exercise, eq(exercise.id, templateExercise.exerciseId))
-    .where(and(eq(templateExercise.templateId, templateId), eq(templateExercise.archived, false)))
+    .where(opts.includeArchived ? eq(templateExercise.templateId, templateId) : and(eq(templateExercise.templateId, templateId), eq(templateExercise.archived, false)))
     .orderBy(asc(templateExercise.orderIndex))
   return rows.map(({ te, ex }) => ({
+    archived: te.archived,
     templateExerciseId: te.id,
     orderIndex: te.orderIndex,
     sets: te.sets,

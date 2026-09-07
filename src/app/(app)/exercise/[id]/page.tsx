@@ -36,7 +36,10 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
         <Link href="/history" aria-label="Back" className="-ml-3 flex size-11 items-center justify-center text-muted-foreground">
           <ChevronLeft size={22} />
         </Link>
-        <h1 className="truncate text-[17px] font-bold">{ex.name}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-[17px] font-bold">{ex.name}</h1>
+        <Link href={`/exercise/${id}/edit`} className="flex h-11 items-center rounded-xl px-3 text-[13px] font-semibold text-primary">
+          Edit
+        </Link>
       </header>
       {ex.cue && <p className="text-[14px] text-muted-foreground">{ex.cue}</p>}
       <div className="grid grid-cols-2 gap-2.5">
@@ -76,7 +79,6 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
             <span className="text-right">{v}</span>
           </div>
         ))}
-        <p className="border-t border-border px-4 py-3 text-[12px] text-muted-foreground/70">Editing comes with the program editor (v1.1). Until then, edit `src/db/seed/program-v2.ts` and re-seed.</p>
       </section>
     </main>
   )

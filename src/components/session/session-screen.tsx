@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronLeft, Timer } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { finishSession, setExerciseNote, swapExercise } from '@/actions/session'
 import { logSetsFromShorthand } from '@/actions/sets'
@@ -69,6 +69,18 @@ export function SessionScreen({ view }: { view: SessionView }) {
   const timer = useRestTimer()
   const sessionPending = runner.pendingFor(view.id)
   useWakeLock(true)
+  const online = useSyncExternalStore(
+    (cb) => {
+      window.addEventListener('online', cb)
+      window.addEventListener('offline', cb)
+      return () => {
+        window.removeEventListener('online', cb)
+        window.removeEventListener('offline', cb)
+      }
+    },
+    () => navigator.onLine,
+    () => true,
+  )
 
   useEffect(() => {
     const id = setInterval(() => setElapsedMin(Math.max(0, Math.round((Date.now() - new Date(view.startedAt).getTime()) / 60000))), 15000)
@@ -236,6 +248,11 @@ export function SessionScreen({ view }: { view: SessionView }) {
       </header>
 
       <main className="flex flex-col gap-3 px-3 pt-3">
+        {!online && (
+          <p role="status" className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-[13px]">
+            Offline — sets are saved on this phone and sync when you reconnect{sessionPending ? ` (${sessionPending} waiting)` : ''}.
+          </p>
+        )}
         <button type="button" onClick={() => setWarmupOpen((o) => !o)} className="flex items-center justify-between rounded-xl border border-dashed border-border px-4 py-2.5 text-[13px] font-medium text-muted-foreground/70">
           <span>Warm-up checklist</span>
           <ChevronDown size={18} className={cn('transition-transform', warmupOpen && 'rotate-180')} />

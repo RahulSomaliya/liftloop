@@ -1,5 +1,6 @@
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { GymConfigForm } from '@/components/editor/gym-config-form'
 import { getDb } from '@/db/client'
 import { loadGym } from '@/db/queries/session'
 import { PROGRAM_V2 } from '@/db/seed/program-v2'
@@ -34,7 +35,8 @@ export default async function SettingsPage() {
           </div>
         ))}
       </section>
-      <p className="text-[13px] text-muted-foreground/70">Read-only in v1. The gym config and rest defaults become editable with the program editor (v1.1).</p>
+      <GymConfigForm gym={gym} />
+      <p className="text-[13px] text-muted-foreground/70">Rest defaults live on each exercise and template entry — edit them under Program → Edit.</p>
     </main>
   )
 }

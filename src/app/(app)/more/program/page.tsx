@@ -1,5 +1,8 @@
+import { asc } from 'drizzle-orm'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { ProgramEditor } from '@/components/editor/program-editor'
+import { exercise } from '@/db/schema'
 import { getDb } from '@/db/client'
 import { loadProgram } from '@/db/queries/home'
 import { loadTemplateEntries } from '@/db/queries/session'
@@ -7,23 +10,30 @@ import { PROGRAM_V2 } from '@/db/seed/program-v2'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProgramPage() {
+export default async function ProgramPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+  const editing = (await searchParams).edit === '1'
   const db = await getDb()
   const prog = await loadProgram(db)
-  const templates = await Promise.all(prog.templates.map(async (t) => ({ ...t, entries: await loadTemplateEntries(db, t.id) })))
+  const templates = await Promise.all(prog.templates.map(async (t) => ({ ...t, entries: await loadTemplateEntries(db, t.id, { includeArchived: editing }) })))
+  const library = editing ? await db.select({ id: exercise.id, name: exercise.name }).from(exercise).orderBy(asc(exercise.name)) : []
   return (
     <main className="flex flex-col gap-4 px-5 pt-2">
       <header className="flex h-14 items-center gap-2">
         <Link href="/more" aria-label="Back" className="-ml-3 flex size-11 items-center justify-center text-muted-foreground">
           <ChevronLeft size={22} />
         </Link>
-        <h1 className="text-[17px] font-bold">Program v{PROGRAM_V2.program.version}</h1>
+        <h1 className="flex-1 text-[17px] font-bold">Program v{PROGRAM_V2.program.version}</h1>
+        <Link href={editing ? '/more/program' : '/more/program?edit=1'} className="flex h-11 items-center rounded-xl px-3 text-[13px] font-semibold text-primary">
+          {editing ? 'Done' : 'Edit'}
+        </Link>
       </header>
-      <p className="text-[13px] text-muted-foreground">
-        Loop: {prog.templates.map((t) => t.name).join(' → ')}. Started {prog.startDate}. Next: <span className="font-semibold text-foreground">{prog.templates[prog.nextIndex]?.name}</span>. Editing arrives with v1.1; until then change{' '}
-        <code className="rounded bg-secondary px-1 text-[12px]">src/db/seed/program-v2.ts</code> and re-seed.
-      </p>
-      {templates.map((t) => (
+      {editing && <ProgramEditor templates={templates.map((t) => ({ id: t.id, name: t.name, entries: t.entries }))} library={library} />}
+      {!editing && (
+        <p className="text-[13px] text-muted-foreground">
+          Loop: {prog.templates.map((t) => t.name).join(' → ')}. Started {prog.startDate}. Next: <span className="font-semibold text-foreground">{prog.templates[prog.nextIndex]?.name}</span>.
+        </p>
+      )}
+      {!editing && templates.map((t) => (
         <section key={t.id} className="flex flex-col rounded-2xl border border-border bg-card">
           <h2 className="px-4 pt-3.5 pb-2 text-[15px] font-bold">{t.name}</h2>
           {t.entries.map((e, i) => {
