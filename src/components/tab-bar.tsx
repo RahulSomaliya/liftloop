@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarDays, Ellipsis, House } from 'lucide-react'
+import { CalendarDays, Ellipsis, House, Scale } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 const TABS = [
   { href: '/', label: 'Home', icon: House },
   { href: '/history', label: 'History', icon: CalendarDays },
+  { href: '/body', label: 'Body', icon: Scale },
   { href: '/more', label: 'More', icon: Ellipsis },
 ] as const
 
@@ -18,7 +19,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]"
+      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]"
     >
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = href === '/' ? pathname === '/' : pathname.startsWith(href)

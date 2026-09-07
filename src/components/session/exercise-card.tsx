@@ -39,6 +39,10 @@ interface Props {
   onLog(setIndex: number, load: number, reps: number | null, toFailure: boolean): void
   onKeypad(req: KeypadRequest): void
   onNote(note: string): void
+  onSwap(): void
+  onShorthand(line: string): Promise<boolean>
+  /** true while this session has unsaved set writes: swap / shorthand are gated (spec §11.2) */
+  gated: boolean
 }
 
 type Draft = { load: number | null; reps: number }
@@ -75,7 +79,7 @@ function MarkIcon({ mark }: { mark: Mark }) {
   return null
 }
 
-export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote }: Props) {
+export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote, onSwap, onShorthand, gated }: Props) {
   const { exercise, goal } = slot
   const setCount = goal?.sets ?? 0
   const [drafts, setDrafts] = useState<Draft[]>(() => initDrafts(goal))
@@ -88,6 +92,9 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote 
   const [editing, setEditing] = useState<number | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState(slot.note ?? '')
+  const [shorthandOpen, setShorthandOpen] = useState(false)
+  const [line, setLine] = useState('')
+  const [lineBusy, setLineBusy] = useState(false)
 
   const logged = new Map(slot.sets.map((s) => [s.setIndex, s]))
   const allLogged = setCount > 0 && Array.from({ length: setCount }, (_, i) => logged.has(i)).every(Boolean)
@@ -173,6 +180,7 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote 
                   {done.reps !== null && repsSuffix}
                 </span>
                 {goal && <MarkIcon mark={markFor(goal, i, done.reps)} />}
+                {done.isPr && <span className="rounded border border-success px-1 text-[10px] font-bold tracking-wider text-success">PR</span>}
                 {done.status === 'pending' && <span className="text-[11px] text-muted-foreground/70">saving…</span>}
                 <span className="flex-1" />
                 <span className="text-[13px] text-muted-foreground/70">edit</span>
@@ -231,16 +239,45 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote 
       </div>
 
       <div className="flex items-center gap-4 pt-1 text-[14px] font-medium text-muted-foreground">
-        <span className="opacity-40" title="Phase 2">
+        <button type="button" disabled={gated} title={gated ? 'Wait for sets to save' : undefined} onClick={() => setShorthandOpen((o) => !o)} className={cn('disabled:opacity-40', shorthandOpen && 'text-foreground')}>
           type it instead
-        </span>
-        <span className="opacity-40" title="Phase 2">
+        </button>
+        <button type="button" disabled={gated} title={gated ? 'Wait for sets to save' : undefined} onClick={onSwap} className="disabled:opacity-40">
           swap
-        </span>
+        </button>
         <button type="button" onClick={() => setNoteOpen((o) => !o)} className={cn(slot.note && 'text-foreground')}>
           note{slot.note ? ' ·' : ''}
         </button>
       </div>
+      {shorthandOpen && (
+        <form
+          className="flex items-center gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!line.trim() || lineBusy) return
+            setLineBusy(true)
+            const ok = await onShorthand(line.trim())
+            setLineBusy(false)
+            if (ok) {
+              setLine('')
+              setShorthandOpen(false)
+            }
+          }}
+        >
+          <input
+            value={line}
+            onChange={(e) => setLine(e.target.value)}
+            placeholder={goal?.load !== null && goal?.load !== undefined ? `${goal.load}.${goal.prefillRepsPerSet.join('.')}` : '27.12.12'}
+            inputMode="decimal"
+            enterKeyHint="done"
+            aria-label="Shorthand for this exercise"
+            className="h-12 min-w-0 flex-1 rounded-xl border border-border bg-secondary px-3.5 font-mono text-[16px] tabular-nums outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button type="submit" disabled={lineBusy || !line.trim()} className="h-12 rounded-xl bg-primary px-4 text-[14px] font-bold text-primary-foreground disabled:opacity-50">
+            Log
+          </button>
+        </form>
+      )}
       {noteOpen && (
         <textarea
           value={noteText}

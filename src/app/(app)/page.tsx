@@ -1,6 +1,8 @@
-import { Ellipsis, Moon } from 'lucide-react'
+import { Moon } from 'lucide-react'
 import Link from 'next/link'
 import { templateExerciseNames } from '@/actions/session'
+import { DiscardButton } from '@/components/home/discard-button'
+import { HomeMenu } from '@/components/home/home-menu'
 import { QuickEntry } from '@/components/home/quick-entry'
 import { StartButton } from '@/components/home/start-button'
 import { getDb } from '@/db/client'
@@ -38,9 +40,12 @@ export default async function HomePage() {
         </span>
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
           <span>{fmtDay(today)}</span>
-          <Link href="/more" aria-label="More actions" className="flex size-11 items-center justify-center rounded-xl">
-            <Ellipsis size={22} />
-          </Link>
+          <HomeMenu
+            templates={data.program.templates.map((t) => ({ id: t.id, name: t.name }))}
+            nextTemplateId={data.nextTemplate.id}
+            hasLiveSession={data.inProgress !== null}
+            manualEasy={data.phase.isEasyWeek && data.phase.source === 'manual'}
+          />
         </div>
       </header>
 
@@ -62,6 +67,7 @@ export default async function HomePage() {
             <Link href={`/session/${data.inProgress.id}`} className="flex h-14 items-center justify-center rounded-2xl bg-primary text-[17px] font-bold text-primary-foreground">
               Resume {data.inProgress.templateName}
             </Link>
+            <DiscardButton sessionId={data.inProgress.id} />
           </>
         ) : (
           <>

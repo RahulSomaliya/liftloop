@@ -4,7 +4,9 @@ import { ChevronDown, ChevronLeft, Timer } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { finishSession, setExerciseNote } from '@/actions/session'
+import { finishSession, setExerciseNote, swapExercise } from '@/actions/session'
+import { logSetsFromShorthand } from '@/actions/sets'
+import { useRouter } from 'next/navigation'
 import type { SessionView } from '@/db/queries/session'
 import type { SessionSummary } from '@/db/queries/summary'
 import type { SetWriteResult } from '@/actions/sets'
@@ -18,6 +20,8 @@ import { CheckinSheet, type CheckinValues } from './checkin-sheet'
 import { ExerciseCard, type Slot, type SlotSet } from './exercise-card'
 import { KeypadSheet, type KeypadRequest } from './keypad-sheet'
 import { Summary } from './summary'
+import { SwapSheet, type SwapRequest } from './swap-sheet'
+import { useWakeLock } from './use-wake-lock'
 import { fmtClock, useRestTimer } from './use-rest-timer'
 
 const UNDO_MS = 5000
@@ -44,6 +48,18 @@ export function SessionScreen({ view }: { view: SessionView }) {
     const idx = initSlots(view).map((slot) => applyOps(slot, runner.opsFor(slot.id))).findIndex((s) => !isComplete(s))
     return idx === -1 ? null : idx
   })
+  // A server re-render (after a swap) hands us a new view: rebuild the slots from it.
+  const [prevView, setPrevView] = useState(view)
+  if (view !== prevView) {
+    setPrevView(view)
+    const fresh = initSlots(view).map((slot) => applyOps(slot, runner.opsFor(slot.id)))
+    setSlots(fresh)
+    const idx = fresh.findIndex((s) => !isComplete(s))
+    setOpenIndex(idx === -1 ? null : idx)
+  }
+  const router = useRouter()
+  const [swap, setSwap] = useState<SwapRequest | null>(null)
+  const [swapBusy, setSwapBusy] = useState(false)
   const [keypad, setKeypad] = useState<KeypadRequest | null>(null)
   const [checkin, setCheckin] = useState<{ open: boolean; short: boolean }>({ open: false, short: false })
   const [finishing, setFinishing] = useState(false)
@@ -52,6 +68,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
   const [elapsedMin, setElapsedMin] = useState(() => Math.max(0, Math.round((Date.now() - new Date(view.startedAt).getTime()) / 60000)))
   const timer = useRestTimer()
   const sessionPending = runner.pendingFor(view.id)
+  useWakeLock(true)
 
   useEffect(() => {
     const id = setInterval(() => setElapsedMin(Math.max(0, Math.round((Date.now() - new Date(view.startedAt).getTime()) / 60000))), 15000)
@@ -115,6 +132,47 @@ export function SessionScreen({ view }: { view: SessionView }) {
       const next = slots.findIndex((s, i) => i !== slotIndex && !isComplete(s) && i > slotIndex)
       const fallback = slots.findIndex((s, i) => i !== slotIndex && !isComplete(s))
       setOpenIndex(next !== -1 ? next : fallback !== -1 ? fallback : null)
+    }
+  }
+
+  function onSwap(slotIndex: number) {
+    const slot = slots[slotIndex]
+    const options = view.exercises.find((e) => e.id === slot.id)?.swapOptions ?? []
+    setSwap({
+      exerciseName: slot.exercise.name,
+      options,
+      onPick: (exerciseId) => {
+        setSwapBusy(true)
+        swapExercise({ sessionExerciseId: slot.id, exerciseId })
+          .then(() => {
+            setSwap(null)
+            toast.success('Swapped — goal recomputed')
+            router.refresh()
+          })
+          .catch((e: unknown) => toast.error(e instanceof Error ? e.message : 'Could not swap'))
+          .finally(() => setSwapBusy(false))
+      },
+    })
+  }
+
+  async function onShorthand(slotIndex: number, line: string): Promise<boolean> {
+    const slot = slots[slotIndex]
+    try {
+      const r = await logSetsFromShorthand({ sessionExerciseId: slot.id, line })
+      if (r.errors.length) {
+        toast.error(r.errors[0])
+        return false
+      }
+      const sets: SlotSet[] = r.rows.map((x) => ({ setIndex: x.setIndex, rev: x.rev, load: x.load, reps: x.reps, toFailure: x.toFailure, isPr: x.isPr, status: 'saved' }))
+      setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { ...s, sets, collapsed: r.exerciseDone?.collapsed ?? null } : s)))
+      if (r.exerciseDone) {
+        const next = slots.findIndex((s, i) => i > slotIndex && !isComplete(s))
+        setOpenIndex(next !== -1 ? next : null)
+      }
+      return true
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not log the line')
+      return false
     }
   }
 
@@ -209,6 +267,9 @@ export function SessionScreen({ view }: { view: SessionView }) {
                 onLog={(setIndex, load, reps, toFailure) => onLog(i, setIndex, load, reps, toFailure)}
                 onKeypad={setKeypad}
                 onNote={(note) => onNote(slot, note)}
+                onSwap={() => onSwap(i)}
+                onShorthand={(line) => onShorthand(i, line)}
+                gated={sessionPending > 0}
               />
               {i === 0 && !allDone && (
                 <button type="button" onClick={() => openCheckin(true)} className="py-1 text-center text-[14px] font-medium text-muted-foreground/70">
@@ -227,6 +288,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
       </main>
 
       <KeypadSheet request={keypad} onClose={() => setKeypad(null)} />
+      <SwapSheet request={swap} busy={swapBusy} onClose={() => setSwap(null)} />
       <CheckinSheet
         key={String(checkin.open)}
         open={checkin.open}

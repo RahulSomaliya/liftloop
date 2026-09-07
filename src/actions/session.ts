@@ -226,3 +226,31 @@ export async function templateExerciseNames(templateId: string): Promise<string[
   return rows.map((r) => r.exercise.name)
 }
 
+
+// ---------- Walk day ----------
+
+const walkSchema = z.object({ minutes: z.number().int().min(1).max(600), note: z.string().max(500).nullable() })
+
+/** A cardio-only session for today: logged and finished at once, never advances the loop (§2.3.4). */
+export async function logWalk(input: { minutes: number; note: string | null }): Promise<{ sessionId: string }> {
+  const parsed = walkSchema.safeParse(input)
+  if (!parsed.success) throw new AppError('VALIDATION', 'Minutes must be between 1 and 600')
+  const db = await getDb()
+  const now = new Date()
+  const [row] = await db
+    .insert(session)
+    .values({
+      date: todayIST(),
+      startedAt: new Date(now.getTime() - parsed.data.minutes * 60000),
+      finishedAt: now,
+      type: 'walk',
+      source: 'logged',
+      durationMin: parsed.data.minutes,
+      advancedLoop: false,
+      note: parsed.data.note?.trim() || null,
+    })
+    .returning({ id: session.id })
+  revalidatePath('/')
+  revalidatePath('/history')
+  return { sessionId: row.id }
+}
