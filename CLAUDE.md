@@ -50,3 +50,4 @@ Server actions throw `AppError` from `src/lib/errors.ts` (code + message); the c
 - PGlite must be in `serverExternalPackages` (next.config.ts) or its wasm loader breaks under Turbopack bundling.
 - Do not add `export type { … }` to a `'use server'` module — Next's action bundler fails with "Export … doesn't exist in target module"; import types from the query module instead.
 - Vercel reserves the `TZ` env var ("name is reserved", 2026-09-07). Never list it in deploy steps; all zoning is explicit in `src/lib/domain/time.ts`.
+- Vercel build failed with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (2026-09-07): the lockfile records `autoInstallPeers: false` from this Mac's pnpm config while Vercel defaults to true. The project `.npmrc` pins `auto-install-peers=false` and `package.json#packageManager` pins pnpm — keep both in sync with the lockfile header.
