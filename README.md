@@ -36,7 +36,6 @@ pnpm build       # next build
 | `SESSION_SECRET` | yes | ≥ 32 characters (`openssl rand -base64 32`). Signs the 90-day sign-in cookie; rotate it to sign out everywhere. |
 | `DATABASE_URL` | prod | Pooled Neon connection string. Set automatically by the Neon Vercel integration. Unset locally → PGlite. |
 | `DATABASE_URL_UNPOOLED` | prod | Direct Neon connection string, used for migrations. Also set by the integration. |
-| `TZ` | recommended | `Asia/Kolkata`. All date logic is explicitly zoned anyway. |
 | `REPORT_OWNER_NAME` | optional | Name printed in the coach report title. Omit on a fork. |
 | `COACH_EXPORT_TOKEN` | optional | ≥ 32 chars. Enables `GET /api/coach-export?token=<it>&days=14` so your coach can fetch the markdown by URL. Unset = route disabled. |
 
@@ -44,7 +43,7 @@ pnpm build       # next build
 
 1. Push this repo to GitHub and **import it in the Vercel dashboard** (Hobby plan). Framework preset: Next.js. Leave the build command alone — `vercel.json` sets it.
 2. In the Vercel project → **Storage → Create Database → Neon** (Marketplace). This provisions a Neon Free project and injects `DATABASE_URL` and `DATABASE_URL_UNPOOLED` into the project.
-3. **Settings → Environment Variables**: add `APP_PASSCODE`, `SESSION_SECRET`, `TZ=Asia/Kolkata` and optionally `REPORT_OWNER_NAME` (Production; add Preview too if you want preview deploys to sign in).
+3. **Settings → Environment Variables**: add `APP_PASSCODE`, `SESSION_SECRET` and optionally `REPORT_OWNER_NAME` / `COACH_EXPORT_TOKEN` (Production; add Preview too if you want preview deploys to sign in). Do not add `TZ` — Vercel reserves that name, and the app zones every date to Asia/Kolkata in code anyway.
 4. **Deploy** (or push to `main`). Production builds run `pnpm db:migrate && pnpm db:seed && next build` (see `scripts/vercel-build.mjs`), so the schema and the program are in place on the first deploy. Preview and local builds are a plain `next build`.
 5. Open the `*.vercel.app` URL on your phone, sign in, add it to the home screen.
 

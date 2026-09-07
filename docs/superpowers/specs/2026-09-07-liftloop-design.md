@@ -498,7 +498,7 @@ Timestamps in UTC (`timestamptz`); logical dates as IST date strings (`date` col
 - **Next.js 16 App Router + TypeScript strict + Tailwind 4 + shadcn/ui**, pnpm. Versions resolve under the machine's npm `before=2026-05-06` pin (do not remove it): Next 16.2.4, Drizzle 0.45, Vitest 4, Zod 4, jose 6. Server Components for reads, Server Actions for writes (Zod-validated), Route Handlers for login and exports.
 - **Database: Neon Postgres Free** (verified 2026-09-07: 0.5 GB, 100 CU-hours/month, scale-to-zero after 5 min idle, no forced pause), provisioned through the Vercel Marketplace so `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) land in Vercel automatically. Drizzle ORM. Production driver: `drizzle-orm/neon-serverless` (WebSocket `Pool`, supports transactions). Local dev and tests: `drizzle-orm/pglite` over `@electric-sql/pglite` (embedded Postgres, file-backed in `.pglite/`, gitignored) selected by `DATABASE_URL` being unset or starting with `pglite:`. Both are Postgres, so migrations are shared.
 - **Validation:** Zod at every boundary, including env at boot (`APP_PASSCODE` ≥ 8 chars, `SESSION_SECRET` ≥ 32 chars). **Charts:** Recharts (v1.1). **PWA:** `manifest.webmanifest` + icons + a hand-written minimal service worker (no Serwist in v1); Wake Lock API during sessions (re-requested on `visibilitychange`); `navigator.vibrate` where available, WebAudio beep everywhere.
-- **Time:** `date-fns` v4 + `@date-fns/tz`; every date computation takes `Asia/Kolkata` explicitly. `TZ=Asia/Kolkata` is also set in the environment as a belt-and-braces measure.
+- **Time:** `date-fns` v4 + `@date-fns/tz`; every date computation takes `Asia/Kolkata` explicitly. `TZ` is NOT set on Vercel (the platform reserves that variable name); the explicit zoning in code is the only mechanism.
 - **Tests:** Vitest for every §7 module and the §8 golden file. Browser verification via headless Chrome screenshots (dark theme, 390 and 1440 wide) before each phase handover.
 
 ### 10.2 Auth
@@ -559,7 +559,7 @@ docs/superpowers/               specs and plans
 ## 12. Source control, hosting, secrets
 
 - **GitHub:** public repo `git@github.com:RahulSomaliya/liftloop.git`, branch `main`. Commit early and often with conventional messages; push after every meaningful step and at the end of every phase. Never bypass hooks.
-- **Vercel:** Git integration, Hobby plan. Every push to `main` is a production deploy. Env vars set in the Vercel dashboard: `APP_PASSCODE` (≥ 8 chars), `SESSION_SECRET` (`openssl rand -base64 32`), `TZ=Asia/Kolkata`, optional `REPORT_OWNER_NAME`, optional `COACH_EXPORT_TOKEN`; `DATABASE_URL` and `DATABASE_URL_UNPOOLED` come from the Neon integration.
+- **Vercel:** Git integration, Hobby plan. Every push to `main` is a production deploy. Env vars set in the Vercel dashboard: `APP_PASSCODE` (≥ 8 chars), `SESSION_SECRET` (`openssl rand -base64 32`), optional `REPORT_OWNER_NAME`, optional `COACH_EXPORT_TOKEN` (never `TZ` — reserved by Vercel); `DATABASE_URL` and `DATABASE_URL_UNPOOLED` come from the Neon integration.
 - **Public code, private data:** `.gitignore` excludes `.env*` (except `.env.example`), `exports/`, `*.dump.json`, DB dumps, `.pglite/`. No personal data in the repo; the program seed is fine to be public. MIT `LICENSE`. README explains single-user + passcode, env vars, Neon setup, migrations, seeding, local dev (PGlite, no Docker), and "deploy your own".
 
 ## 13. Seed data — program v2 (2026-09-07)

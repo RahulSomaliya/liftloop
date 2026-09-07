@@ -49,4 +49,4 @@ Server actions throw `AppError` from `src/lib/errors.ts` (code + message); the c
 - Sonner toasts sit exactly where a bottom sheet's primary button lands on a 390 px phone; dismiss toasts (`toast.dismiss()`) before opening the check-in sheet and scroll targets to centre in QA scripts.
 - PGlite must be in `serverExternalPackages` (next.config.ts) or its wasm loader breaks under Turbopack bundling.
 - Do not add `export type { … }` to a `'use server'` module — Next's action bundler fails with "Export … doesn't exist in target module"; import types from the query module instead.
-
+- Vercel reserves the `TZ` env var ("name is reserved", 2026-09-07). Never list it in deploy steps; all zoning is explicit in `src/lib/domain/time.ts`.
