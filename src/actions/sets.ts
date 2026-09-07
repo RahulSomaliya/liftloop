@@ -6,7 +6,7 @@ import { getDb, type Tx } from '@/db/client'
 import { recomputeExercise, recomputePrs, type ExerciseDone } from '@/db/recompute'
 import { exercise, session, sessionExercise, setLog } from '@/db/schema'
 import { parseExerciseLine } from '@/lib/domain/shorthand'
-import { AppError } from '@/lib/errors'
+import { AppError, type AppErrorCode } from '@/lib/errors'
 
 const uuid = z.string().uuid()
 
@@ -145,4 +145,33 @@ export async function logSetsFromShorthand(input: { sessionExerciseId: string; l
     const rows = await tx.select().from(setLog).where(and(eq(setLog.sessionExerciseId, ctx.se.id), isNull(setLog.deletedAt))).orderBy(asc(setLog.setIndex))
     return { rows: rows.map(toRow), exerciseDone: done, errors: [] }
   })
+}
+
+// ---------- queue transport entry point ----------
+
+export type ApplyOutcome = { ok: true; result: SetWriteResult } | { ok: false; code: AppErrorCode | 'INTERNAL'; message: string }
+
+const opSchema = z.discriminatedUnion('kind', [
+  logSchema.extend({ kind: z.literal('logSet') }),
+  revSchema.extend({ kind: z.literal('deleteSet') }),
+  revSchema.extend({ kind: z.literal('restoreSet') }),
+])
+
+/**
+ * Single entry point for the client write queue. Never throws for expected failures: the runner
+ * needs the error class (rejected vs server) to apply the §11.3 policy, and thrown server-action
+ * errors are masked in production.
+ */
+export async function applySetOp(input: unknown): Promise<ApplyOutcome> {
+  const parsed = opSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, code: 'VALIDATION', message: 'Invalid set write' }
+  try {
+    const op = parsed.data
+    const result = op.kind === 'logSet' ? await logSet(op) : op.kind === 'deleteSet' ? await deleteSet(op) : await restoreSet(op)
+    return { ok: true, result }
+  } catch (e) {
+    if (e instanceof AppError) return { ok: false, code: e.code, message: e.message }
+    console.error('applySetOp failed', { input, error: e })
+    return { ok: false, code: 'INTERNAL', message: 'Server error while saving the set' }
+  }
 }

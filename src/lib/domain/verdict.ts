@@ -80,6 +80,13 @@ export function getVerdict({ goal, loggedSets, exercise, gym, nextWeekPhase }: V
   return { verdict, mark, nextNote, allHitHi }
 }
 
+/** Per-row mark for the session UI (null in easy/Ramp mode or for a failure set). */
+export function markFor(goal: Goal, setIndex: number, reps: number | null): Mark {
+  if (goal.setsOverride === 2 || reps === null) return null
+  const t = targetAt(goal, setIndex)
+  return reps > t ? 'up' : reps === t ? 'eq' : 'down'
+}
+
 const VERB: Record<Verdict, string> = { beat: 'beat it', matched: 'matched', under: 'under', done: 'done' }
 
 /** "27 kg × 12·10·9 — beat it · same weight next time" (spec §6.3). */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { collapsedLine, getVerdict } from '../verdict'
 import type { Goal, LoggedSet } from '../types'
-import { assist, buildPhase, gym, perSideRdl, stackKg } from './fixtures'
+import { assist, gym, perSideRdl, stackKg } from './fixtures'
 
 const logged = (load: number | null, reps: (number | null)[]): LoggedSet[] =>
   reps.map((r, i) => ({ setIndex: i, load, reps: r, toFailure: r === null }))
