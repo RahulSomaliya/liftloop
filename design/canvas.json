@@ -1,0 +1,162 @@
+{
+  "pages": [
+    {
+      "id": "flow",
+      "name": "Screens"
+    },
+    {
+      "id": "alts",
+      "name": "Direction alternates"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Login.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "Login"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "Home"
+    },
+    {
+      "file": "HomeAlerts.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "HomeAlerts"
+    },
+    {
+      "file": "SessionOpen.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 1010,
+      "page": "flow",
+      "title": "SessionOpen"
+    },
+    {
+      "file": "SessionMid.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 950,
+      "page": "flow",
+      "title": "SessionMid"
+    },
+    {
+      "file": "CheckIn.dc.html",
+      "x": 0,
+      "y": 1170,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "CheckIn"
+    },
+    {
+      "file": "Summary.dc.html",
+      "x": 490,
+      "y": 1170,
+      "w": 390,
+      "h": 930,
+      "page": "flow",
+      "title": "Summary"
+    },
+    {
+      "file": "HistoryList.dc.html",
+      "x": 980,
+      "y": 1170,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "HistoryList"
+    },
+    {
+      "file": "HistoryDetail.dc.html",
+      "x": 1470,
+      "y": 1170,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "HistoryDetail"
+    },
+    {
+      "file": "Body.dc.html",
+      "x": 1960,
+      "y": 1170,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "Body"
+    },
+    {
+      "file": "Export.dc.html",
+      "x": 0,
+      "y": 2260,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "Export"
+    },
+    {
+      "file": "More.dc.html",
+      "x": 490,
+      "y": 2260,
+      "w": 390,
+      "h": 844,
+      "page": "flow",
+      "title": "More"
+    },
+    {
+      "file": "AltEditorial.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "alts",
+      "title": "AltEditorial"
+    },
+    {
+      "file": "AltConsole.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "alts",
+      "title": "AltConsole"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "direction",
+      "x": 0,
+      "y": -140,
+      "w": 560,
+      "page": "flow",
+      "text": "LiftLoop — gym-floor console. Dark neutral surfaces (shadcn tokens from the app), elevation by lightness, one amber accent for the single primary action per screen, tabular numerals for every load and rep. Row 1: sign in → home → home with alerts → session. Row 2: check-in → summary → history → body. Row 3: coach export → more."
+    },
+    {
+      "id": "alts-note",
+      "x": 0,
+      "y": -120,
+      "w": 480,
+      "page": "alts",
+      "text": "Two low-fi alternates for the Home direction, in case the main direction feels off. Pick one and I rebuild every screen in it."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "flow"
+  }
+}

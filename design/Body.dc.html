@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0a0a0a; color: #fafafa; font-family: Geist, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+    a { color: #f2b134; text-decoration: none; } a:hover { color: #ffd070; }
+    .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .num { font-variant-numeric: tabular-nums; }
+    svg { display: block; }
+  </style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #0a0a0a; box-sizing: border-box;">
+
+  
+  <header style="display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 20px; box-sizing: border-box;">
+    <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Body</span></div>
+    <div style="display: flex; align-items: center; gap: 8px; color: #a3a3a3;"><span class="num" style="font-size: 13px;">Mon 7 Sep</span></div>
+  </header>
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 4px 20px 0; box-sizing: border-box;">
+    <section style="display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 16px; background: #171717; border: 1px solid rgba(255,255,255,0.10);">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <div style="display: flex; align-items: baseline; gap: 6px;"><span class="num" style="font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">73.6</span><span style="font-size: 15px; color: #737373;">kg</span></div>
+        <div class="num" style="font-size: 13px; color: #a3a3a3;">7-day avg <span style="color: #fafafa; font-weight: 600;">73.4</span></div>
+      </div>
+      <svg width="314" height="56" viewBox="0 0 314 56" fill="none"><polyline points="0,40 45,36 90,38 135,30 180,28 225,24 270,20 314,18" stroke="#f2b134" stroke-width="2" stroke-linejoin="round"/><polyline points="0,44 45,34 90,42 135,26 180,32 225,20 270,24 314,14" stroke="#737373" stroke-width="1.5" stroke-dasharray="3 4"/></svg>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div class="num" style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 14px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10);"><span style="font-size: 13px; color: #a3a3a3;">Waist</span><span style="font-size: 17px; font-weight: 600;">84.0 <span style="font-size: 12px; color: #737373; font-weight: 500;">cm</span></span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; height: 48px; padding: 4px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: center; border-radius: 9px; background: #333333; font-size: 13px; font-weight: 600;">Slept</div>
+          <div style="display: flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 13px; font-weight: 500; color: #a3a3a3;">Bad</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 14px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10);"><span style="font-size: 13px; color: #a3a3a3;">Protein ≥140 g</span><div style="width: 22px; height: 22px; border-radius: 6px; background: #f2b134; color: #1a1200; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div></div>
+        <div class="num" style="display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 14px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10);"><span style="font-size: 13px; color: #a3a3a3;">Cardio</span><span style="font-size: 14px; font-weight: 600;">Walk · 22 min</span></div>
+      </div>
+    </section>
+    <div style="display: flex; flex-direction: column;">
+      <div style="font-size: 13px; font-weight: 600; color: #a3a3a3; letter-spacing: 0.02em; padding: 4px 4px 10px;">LAST 7 DAYS</div>
+      <div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Sun 6</div><div style="font-weight: 600;">73.8</div><div style="color: #5fd38a;">good</div><div style="color: #a3a3a3;">—</div></div><div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Sat 5</div><div style="font-weight: 600;">73.5</div><div style="color: #5fd38a;">good</div><div style="color: #a3a3a3;">Walk 20</div></div><div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Fri 4</div><div style="font-weight: 600;">—</div><div style="color: #ff6b6b;">bad</div><div style="color: #a3a3a3;">—</div></div><div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Thu 3</div><div style="font-weight: 600;">73.3</div><div style="color: #5fd38a;">good</div><div style="color: #a3a3a3;">—</div></div><div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Wed 2</div><div style="font-weight: 600;">73.9</div><div style="color: #5fd38a;">good</div><div style="color: #a3a3a3;">Walk 25</div></div><div class="num" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; height: 40px; padding: 0 4px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><div style="color: #737373;">Tue 1</div><div style="font-weight: 600;">73.1</div><div style="color: #737373;">—</div><div style="color: #a3a3a3;">—</div></div>
+    </div>
+  </div>
+  <nav style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; padding: 8px 8px 24px; box-sizing: border-box; background: #171717; border-top: 1px solid rgba(255,255,255,0.10); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 52px; border-radius: 10px; color: #737373;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span style="font-size: 11px; font-weight: 500;">Home</span></div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 52px; border-radius: 10px; color: #737373;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span style="font-size: 11px; font-weight: 500;">History</span></div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 52px; border-radius: 10px; color: #fafafa;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M12 12v5"/></svg><span style="font-size: 11px; font-weight: 600;">Body</span></div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 52px; border-radius: 10px; color: #737373;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg><span style="font-size: 11px; font-weight: 500;">More</span></div>
+  </nav>
+</div>
+</x-dc>
+</body>
+</html>
