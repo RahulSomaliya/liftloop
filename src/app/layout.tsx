@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'LiftLoop' },
   icons: { icon: '/icons/icon-192.png', apple: '/apple-touch-icon.png' },
+  // Single-user app on a public *.vercel.app domain: keep the sign-in page out of search results.
+  robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {

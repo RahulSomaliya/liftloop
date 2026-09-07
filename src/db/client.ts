@@ -40,6 +40,12 @@ export async function createDb(url = process.env.DATABASE_URL): Promise<{ db: Db
     return { db, close: () => client.close(), kind: 'pglite' }
   }
   const pool = new Pool({ connectionString: url })
+  // The pool outlives a request (cached below), so an idle WebSocket can be closed under it —
+  // Neon suspends its compute after ~5 min idle and Vercel freezes/thaws the function instance.
+  // pg's Pool emits 'error' for a dropped idle client; with no listener that is an unhandled
+  // 'error' event, which throws and takes the whole instance (and any in-flight request) down.
+  // Log it and move on: the dead client is already removed, the next query opens a fresh one.
+  pool.on('error', (err: Error) => console.error('[liftloop] neon pool: idle connection dropped', err.message))
   const db = drizzleNeon(pool, { schema }) as unknown as Db
   return { db, close: () => pool.end(), kind: 'neon' }
 }
