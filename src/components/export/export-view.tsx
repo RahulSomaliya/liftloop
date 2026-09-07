@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy } from 'lucide-react'
+import { Copy, Share } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -21,6 +21,20 @@ export function ExportView({ text, from, to, preset, sessions, walks }: { text: 
   const [cFrom, setCFrom] = useState(from)
   const [cTo, setCTo] = useState(to)
   const [busy, setBusy] = useState(false)
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  async function share() {
+    setBusy(true)
+    try {
+      await navigator.share({ title: 'LiftLoop report', text })
+      await recordExport({ from, to })
+      router.refresh()
+    } catch (e) {
+      if (!(e instanceof Error && e.name === 'AbortError')) toast.error('Could not share — use Copy instead')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function copy() {
     setBusy(true)
@@ -80,9 +94,9 @@ export function ExportView({ text, from, to, preset, sessions, walks }: { text: 
         <button type="button" onClick={copy} disabled={busy} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-[16px] font-bold text-primary-foreground disabled:opacity-60">
           <Copy size={18} /> Copy
         </button>
-        <span className="flex h-14 items-center justify-center rounded-2xl border border-border bg-secondary text-[16px] font-semibold text-muted-foreground/60" title="Phase 2">
-          Share
-        </span>
+        <button type="button" onClick={share} disabled={busy || !canShare} title={canShare ? undefined : 'Sharing is not available in this browser'} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-border bg-secondary text-[16px] font-semibold disabled:text-muted-foreground/60">
+          <Share size={18} /> Share
+        </button>
       </div>
     </div>
   )
