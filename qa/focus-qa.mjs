@@ -89,7 +89,7 @@ await page.waitForFunction(() => [...document.querySelectorAll('button')].some((
 await page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent.startsWith('Start ')).click())
 await page.waitForFunction(() => location.pathname.startsWith('/session/') && !!document.querySelector('button[aria-label^="Log set"]'), { timeout: 20000 })
 await sleep(300)
-await shot('03-focus-first', 'Only the first exercise on screen: strip 1 of 6, warm-up row, card, "Up next", short-session link', {
+await shot('03-focus-first', 'Only the first exercise on screen: strip 1 of 6, warm-up row, card with ONE set row, "Up next", "Wrap up early"', {
   checks: [headerClearsIsland, ['exactly one exercise card', () => document.querySelectorAll('main section[aria-label]').length === 1], has('button', 'Lineup, exercise 1 of 6'.replace('Lineup, exercise 1 of 6', '1 of 6 Lineup')), ['postpone action present', () => [...document.querySelectorAll('button')].some((b) => b.textContent.trim() === 'postpone')]],
 })
 
@@ -99,14 +99,11 @@ async function logSet(weight) {
   await btn.evaluate((el) => el.scrollIntoView({ block: 'center' }))
   await btn.evaluate((el) => el.click())
   await sleep(300)
-  const keypad = await page.$('input[aria-label$="— weight"]')
-  if (keypad) {
-    await keypad.click({ clickCount: 3 })
-    await keypad.type(String(weight))
-    await clickText('Done')
-    await sleep(300)
-    const again = await page.$('button[aria-label^="Log set"]')
-    if (again) await again.evaluate((el) => el.click())
+  // v1.3: ✓ with no weight opens the in-app keypad; confirming logs the set in the same go.
+  if (await page.$('[data-keypad-display]')) {
+    for (const ch of String(weight)) await page.evaluate((c) => document.querySelector(`button[aria-label="digit ${c}"]`).click(), ch)
+    await page.evaluate(() => document.querySelector('button[aria-label="Confirm value"]').click())
+    await sleep(500)
   }
   await sleep(400)
   return true
@@ -116,20 +113,19 @@ await logSet(25)
 await shot('04-rest-running', 'Set 1 logged → rest pill counts down (15 s), amber line under the header fills', {
   checks: [['pill running', () => /Rest \d+:\d\d/.test(document.querySelector('header button[aria-label^="Rest"]')?.getAttribute('aria-label') ?? '')]],
 })
-// stepper open on set 2: ✓ must drop to its own row, no overflow at 393 px
-const repsChip = (await page.$$('button.tabular-nums.w-\\[72px\\]'))[0]
-if (repsChip) {
-  await repsChip.tap()
-  await sleep(200)
-  await shot('05-stepper-row', 'Reps stepper open: −/+ inline, the ✓ on its own row (no squeeze at 393 px)', {
-    checks: [['✓ sits below the chips', () => {
-      const chip = document.querySelector('button[aria-label="increase"]')
-      const check = document.querySelector('button[aria-label^="Log set 2"]')
-      return !!chip && !!check && check.getBoundingClientRect().top > chip.getBoundingClientRect().bottom - 1
-    }]],
-  })
-  await repsChip.tap()
-}
+// v1.3: tapping a chip opens the in-app keypad (no iOS keyboard); only the current set is an input row
+await page.evaluate(() => document.querySelector('button[aria-label^="Weight for set"]').click())
+await page.waitForSelector('[data-keypad-display]', { visible: true })
+await sleep(400)
+await shot('05-keypad', 'Weight chip → in-app keypad: big display, ± by the stepping rule, digits, one Set button, exercise-settings link', {
+  checks: [['keypad visible', () => !!document.querySelector('[data-keypad-display]')], ['no native input focused', () => !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName ?? '')]],
+})
+await page.keyboard.press('Escape')
+await page.waitForFunction(() => !document.querySelector('[data-keypad-display]'))
+await sleep(200)
+await shot('05b-one-set-row', 'Only the current set is an input row; set 1 sits above as a logged row', {
+  checks: [['one input row', () => document.querySelectorAll('main button[aria-label^="Log set"]').length === 1], ['logged row present', () => [...document.querySelectorAll('main button')].some((b) => /Set 1/.test(b.textContent) && /edit|logged/.test(b.textContent))]],
+})
 await page.waitForFunction(() => document.querySelector('header button[aria-label="Rest over, go"]'), { timeout: 25000 })
 await sleep(200)
 await shot('06-rest-over', 'Rest over: pill turns green "go" and pulses, line under the header is full green (beep + buzz fired)', {
@@ -185,22 +181,22 @@ group('All done + finish')
 let guard = 0
 while (guard < 40) {
   guard += 1
-  const finish = await page.$('button::-p-text(Finish session)')
+  const finish = (await page.evaluateHandle(() => [...document.querySelectorAll('main button')].find((b) => b.textContent.trim() === "I'm done") ?? null)).asElement()
   if (finish) break
   const ok = await logSet(20)
   if (!ok) break
 }
 await page.evaluate(() => window.scrollTo(0, 0))
 await sleep(300)
-await shot('11-all-done', 'Every exercise done: strip 6 of 6, recap list with verdict lines, one Finish session button', {
-  checks: [has('button', 'Finish session'), ['6 recap rows', () => document.querySelectorAll('main .rounded-2xl > div').length >= 6]],
+await shot('11-all-done', 'Every exercise done: strip 6 of 6, recap list with verdict lines, one "I\'m done" button', {
+  checks: [has('button', "I'm done"), ['6 recap rows', () => document.querySelectorAll('main .rounded-2xl > div').length >= 6]],
 })
 await shot('12-all-done-desktop', 'Same on desktop width', { w: 1440, h: 900 })
 await setSize(393, 852)
-await clickText('Finish session')
-await page.waitForSelector('button::-p-text(Save & finish)', { visible: true })
+await clickText("I'm done")
+await page.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.trim() === "I'm done"), { timeout: 10000 })
 await sleep(500)
-await shot('13-checkin', 'Check-in sheet clears the home indicator', {
+await shot('13-checkin', '"Nice work." check-in: sleep, shoulder, elbow, note, one "I\'m done" button; clears the home indicator', {
   checks: [['sheet padding clears 34 px', () => {
     const d = document.querySelector('[role=dialog]')
     const last = [...d.querySelectorAll('button')].at(-1)
@@ -208,10 +204,10 @@ await shot('13-checkin', 'Check-in sheet clears the home indicator', {
   }]],
 })
 await page.waitForFunction(() => {
-  const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Save & finish')
+  const b = [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done")
   return b && !b.disabled
 })
-await clickText('Save & finish')
+await page.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done").click())
 await page.waitForSelector('h1::-p-text(done)', { visible: true, timeout: 15000 })
 await shot('14-summary', 'Summary after finish')
 

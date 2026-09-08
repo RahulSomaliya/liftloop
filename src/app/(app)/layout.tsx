@@ -7,7 +7,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
     <QueueProvider>
       <div className="mx-auto w-full max-w-md flex-1 pt-[var(--safe-top)] pb-28 md:max-w-2xl">{children}</div>
       <TabBar />
-      <Toaster position="bottom-center" offset={104} mobileOffset={{ bottom: 'calc(var(--safe-bottom) + 96px)' }} />
+      <Toaster position="bottom-center" duration={2500} offset={104} mobileOffset={{ bottom: 'calc(var(--safe-bottom) + 96px)' }} />
     </QueueProvider>
   )
 }

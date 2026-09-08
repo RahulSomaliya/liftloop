@@ -1,0 +1,64 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Current set only"
+    },
+    {
+      "file": "Logged.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "After ✓ (no toast)"
+    },
+    {
+      "file": "Keypad.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "In-app keypad"
+    },
+    {
+      "file": "More.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "••• more sheet"
+    },
+    {
+      "file": "CheckIn.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Check-in · I'm done"
+    },
+    {
+      "file": "Feedback.dc.html",
+      "x": 2450,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Feedback vocabulary"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "polish-brief",
+      "x": 0,
+      "y": -190,
+      "w": 680,
+      "text": "Session polish (v1.3) from the first real workout. 1) Only the current set is an input; logged sets stack above as compact rows (tap to change or remove). 2) Tapping a weight or reps chip opens an in-app keypad — no iOS keyboard, so no half-hidden sheet or blank bar; ± by the exercise's stepping rule, a 'last time' preset, one big Set button. 3) Logging a set flashes the row green instead of a toast; undo lives on the row. 4) Rarely used actions (type it instead, swap, note, exercise settings incl. unit) move behind '•••'. 5) Every button gets a pressed state (scale .97 + darker, 80 ms) and no tap delay. 6) Check-in: 'Nice work.' + 'I'm done'; header 'Finish' becomes 'Wrap up'. Toasts shrink to a compact pill for errors and rare confirmations."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

@@ -55,7 +55,7 @@ export default async function SessionDetailPage({ params, searchParams }: { para
       {s.type === 'walk' ? (
         <p className="text-[14px] text-muted-foreground">Cardio only, loop not advanced.</p>
       ) : editing ? (
-        <EditSets sessionId={s.id} exercises={s.exercises} />
+        <EditSets sessionId={s.id} title={title} exercises={s.exercises} />
       ) : (
         <>
           <section className="flex flex-col gap-2">

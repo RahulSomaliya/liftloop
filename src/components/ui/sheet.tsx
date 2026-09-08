@@ -40,7 +40,9 @@ function SheetContent({
   className,
   children,
   side = "right",
-  showCloseButton = true,
+  // Bottom sheets (every sheet in LiftLoop) get a drag handle and no X: the X collided with the
+  // title row's meta text and every sheet already closes on backdrop tap / swipe (2026-09-08).
+  showCloseButton = side !== "bottom",
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
@@ -58,6 +60,7 @@ function SheetContent({
         )}
         {...props}
       >
+        {side === "bottom" && <div aria-hidden className="mx-auto -mb-1 mt-2 h-1 w-9 shrink-0 rounded-full bg-muted-foreground/30" />}
         {children}
         {showCloseButton && (
           <SheetPrimitive.Close

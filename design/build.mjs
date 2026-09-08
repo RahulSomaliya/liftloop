@@ -792,3 +792,193 @@ const focusCanvas = {
 }
 writeFileSync(join(here, 'focus', 'canvas.json'), JSON.stringify(focusCanvas, null, 2))
 console.log('wrote', Object.keys(focusFiles).length, 'focus artboards + focus/canvas.json')
+
+// =====================================================================================
+// v1.3 — Session polish after the first real workout (2026-09-08): in-app keypad (no iOS
+// keyboard), one set at a time, inline logged feedback instead of toasts, "more" sheet,
+// check-in polish + copy. design/polish/*. Refactoring-UI: one primary action per surface,
+// weight/colour over size, states for every control.
+// =====================================================================================
+icon.kbd = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>'
+icon.swap = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4l-3 3M7 4l3 3M17 20V4M17 20l-3-3M17 20l3-3"/></svg>'
+icon.note = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'
+icon.gear = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
+icon.backspace = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 6H8l-5 6 5 6h13a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1z"/><path d="M18 9l-6 6M12 9l6 6"/></svg>'
+icon.more = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>'
+
+const handle = `<div style="display: flex; justify-content: center; padding: 6px 0 2px;"><div style="width: 36px; height: 4px; border-radius: 999px; background: ${T.s3};"></div></div>`
+const sheet = (inner) => `
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.55);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 14px; padding: 6px 20px 42px; box-sizing: border-box; background: ${T.s1}; border-top: 1px solid ${T.border}; border-radius: 24px 24px 0 0;">
+    ${handle}
+    ${inner}
+  </div>`
+const bigChip = (txt, w, muted = false) => `<div class="num" style="display: flex; align-items: center; justify-content: center; width: ${w}px; height: 52px; border-radius: 14px; background: ${T.s2}; border: 1px solid ${T.border}; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; ${muted ? `font-size: 14px; font-weight: 500; color: ${T.text2};` : ''}">${txt}</div>`
+const bigCheck = `<div style="display: flex; align-items: center; justify-content: center; width: 60px; height: 52px; border-radius: 14px; background: ${T.accent}; color: ${T.accentFg};">${icon.check}</div>`
+const currentSetRow = (n, w, r, wMuted = false) => `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 44px; color: ${T.text3}; font-size: 13px; font-weight: 500;">Set ${n}</div>
+        ${bigChip(w, 118, wMuted)}${bigChip(r, 76)}
+        <div style="flex-grow: 1;"></div>
+        ${bigCheck}
+      </div>`
+const loggedRowFlash = (n, txt, flash) => `
+      <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 12px; background: ${flash ? T.okSoft : T.bg}; border: 1px solid ${flash ? 'rgba(95,211,138,0.35)' : 'transparent'};">
+        <div style="width: 44px; color: ${T.text3}; font-size: 13px; font-weight: 500;">Set ${n}</div>
+        <div class="num" style="font-size: 17px; font-weight: 600;">${txt}</div>
+        <div style="color: ${T.ok};">${icon.up}</div>
+        <div style="flex-grow: 1;"></div>
+        <div style="color: ${flash ? T.ok : T.text3}; font-size: 13px; font-weight: ${flash ? 600 : 400};">${flash ? 'logged' : 'edit'}</div>
+      </div>`
+const polishFooter = `<div style="display: flex; align-items: center; justify-content: space-between; padding-top: 4px; font-size: 14px; font-weight: 500; color: ${T.text2};"><span style="display: flex; align-items: center; gap: 6px;">postpone ${icon.skip}</span><div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 36px; border-radius: 10px; background: ${T.s2}; color: ${T.text2};">${icon.more}</div></div>`
+const polishHeader = (rest, state, pct) => focusHeader('6:12', state, rest, pct).replace('>Finish<', '>Wrap up<')
+
+// 1. Fresh card — only the current set is an input. Cue clamped to two lines.
+const PolishMain = page(`
+  ${polishHeader('—', 'idle', null)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${focusCard(`
+      ${openCardHeader('Machine Chest-Supported Row', '10–12 × 2')}
+      <div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">First time — pick a weight you can do 12 with 4 left</div>
+      <div style="margin-top: -4px; font-size: 13px; line-height: 1.4; color: ${T.text2}; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">Chest on the pad, pull the handles to your lower ribs, squeeze for a beat, let the weight stretch you at the front.</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        ${currentSetRow(1, 'tap to set', '12', true)}
+      </div>
+      <div style="font-size: 12px; color: ${T.text3};">2 sets · then rest 90 s</div>
+      ${polishFooter}`)}
+    ${nextLine('Lat Pulldown (Front, Medium Grip)')}
+  </div>`)
+
+// 2. Right after ✓ — the row settles into a logged row with a green flash; no toast. Rest starts.
+const PolishLogged = page(`
+  ${polishHeader('1:28', 'running', 8)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${focusCard(`
+      ${openCardHeader('Machine Chest-Supported Row', '10–12 × 2')}
+      <div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">First time — pick a weight you can do 12 with 4 left</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        ${loggedRowFlash(1, '35 kg × 12', true)}
+        ${currentSetRow(2, '35 kg', '12')}
+      </div>
+      <div style="font-size: 12px; color: ${T.text3};">last set · tap a logged set to change or remove it</div>
+      ${polishFooter}`)}
+    ${nextLine('Lat Pulldown (Front, Medium Grip)')}
+  </div>`)
+
+// 3. In-app keypad — no iOS keyboard, ± by the exercise's stepping rule, last-time preset.
+const key = (txt, opts = {}) => `<div class="num" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 12px; background: ${opts.bg || T.s2}; color: ${opts.color || T.text}; font-size: 24px; font-weight: 600;">${txt}</div>`
+const quick = (txt, on = false) => `<div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: ${on ? T.accentSoft : T.s2}; border: 1px solid ${on ? T.accent : T.border}; color: ${on ? T.accent : T.text}; font-size: 14px; font-weight: 600; white-space: nowrap;">${txt}</div>`
+const PolishKeypad = page(`
+  ${polishHeader('—', 'idle', null)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${focusCard(`${openCardHeader('Machine Chest-Supported Row', '10–12 × 2')}<div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">First time — pick a weight you can do 12 with 4 left</div>`)}
+  </div>
+  ${sheet(`
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: ${T.text3};">MACHINE CHEST-SUPPORTED ROW</div>
+      <div style="font-size: 17px; font-weight: 700;">Weight for set 1</div>
+    </div>
+    <div class="num" style="display: flex; align-items: baseline; justify-content: center; gap: 8px; height: 72px; border-radius: 16px; background: ${T.bg}; border: 1px solid ${T.border};">
+      <span style="font-size: 44px; font-weight: 700; letter-spacing: -0.03em;">35</span><span style="font-size: 17px; color: ${T.text2};">kg</span>
+    </div>
+    <div style="display: flex; gap: 8px; justify-content: center;">${quick('− 2.5')}${quick('last 32.5', true)}${quick('+ 2.5')}</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+      ${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((k) => key(k)).join('')}
+      ${key('.', { bg: T.s1, color: T.text2 })}${key('0')}${key(icon.backspace, { bg: T.s1, color: T.text2 })}
+    </div>
+    ${btnPrimary('Set 35 kg')}
+    <div style="text-align: center; font-size: 13px; color: ${T.text3};">Wrong unit? <span style="color: ${T.text2}; font-weight: 600;">Exercise settings</span></div>`)}`)
+
+// 4. "•••" — the rarely used actions, two taps away.
+const moreRow = (ic, title, sub) => `
+      <div style="display: flex; align-items: center; gap: 14px; height: 60px; padding: 0 4px; border-top: 1px solid ${T.border};">
+        <div style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: ${T.s2}; color: ${T.text2};">${ic}</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1; min-width: 0;"><div style="font-size: 15px; font-weight: 600;">${title}</div><div style="font-size: 13px; color: ${T.text3}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sub}</div></div>
+        <div style="color: ${T.text3};">${icon.chevSm}</div>
+      </div>`
+const PolishMore = page(`
+  ${polishHeader('1:28', 'running', 8)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${focusCard(`${openCardHeader('Machine Chest-Supported Row', '10–12 × 2')}<div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">First time — pick a weight you can do 12 with 4 left</div>`)}
+  </div>
+  ${sheet(`
+    <div style="font-size: 17px; font-weight: 700; padding: 0 4px;">Machine Chest-Supported Row</div>
+    <div style="display: flex; flex-direction: column;"><div style="margin-top: -1px;">
+      ${moreRow(icon.kbd, 'Type it instead', '35.12.12 logs every set at once')}
+      ${moreRow(icon.swap, 'Swap exercise', 'Seated Cable Row · Single-Arm DB Row')}
+      ${moreRow(icon.note, 'Add a note', 'Grip, seat height, how it felt')}
+      ${moreRow(icon.gear, 'Exercise settings', 'Unit, load type, weight steps')}
+    </div></div>`)}`)
+
+// 5. Check-in — one primary action, Nike-style copy.
+const seg = (a, b, on) => `<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; height: 48px; padding: 4px; border-radius: 14px; background: ${T.s2}; border: 1px solid ${T.border}; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; justify-content: center; border-radius: 10px; background: ${on === 0 ? T.s3 : 'transparent'}; color: ${on === 0 ? T.text : T.text2}; font-size: 15px; font-weight: ${on === 0 ? 700 : 500};">${a}</div>
+        <div style="display: flex; align-items: center; justify-content: center; border-radius: 10px; background: ${on === 1 ? T.s3 : 'transparent'}; color: ${on === 1 ? T.text : T.text2}; font-size: 15px; font-weight: ${on === 1 ? 700 : 500};">${b}</div>
+      </div>`
+const painRow = (label, val) => `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 1px;"><div style="font-size: 15px; font-weight: 600;">${label}</div><div style="font-size: 12px; color: ${T.text3};">0 fine · 10 worst</div></div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: ${T.s2}; border: 1px solid ${T.border}; color: ${T.text2};">${icon.minus}</div>
+          <div class="num" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; font-size: 22px; font-weight: 700;">${val}</div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: ${T.s2}; border: 1px solid ${T.border}; color: ${T.text2};">${icon.plus}</div>
+        </div>
+      </div>`
+const PolishCheckIn = page(`
+  ${polishHeader('—', 'idle', null)}
+  ${progressStrip(['done', 'done', 'done', 'done', 'done', 'done'])}
+  ${sheet(`
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Nice work.</div>
+      <div class="num" style="font-size: 13px; color: ${T.text3};">Pull A · 41 min · 12 sets · 1 PR</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600;">Sleep last night</div>
+      ${seg('Good', 'Bad', 0)}
+    </div>
+    ${painRow('Left shoulder', 0)}
+    ${painRow('Elbow', 0)}
+    <div style="display: flex; align-items: center; height: 48px; padding: 0 14px; border-radius: 14px; background: ${T.s2}; border: 1px solid ${T.border}; color: ${T.text3}; font-size: 15px;">Anything to remember next time?</div>
+    ${btnPrimary("I'm done")}`)}`)
+
+// 6. Feedback vocabulary: pressed state, logged flash, compact toast pill (errors + rare confirmations only).
+const PolishFeedback = page(`
+  <div style="display: flex; flex-direction: column; gap: 28px; padding: 24px 20px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: ${T.text3};">PRESSED — every button, 80 ms</div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        ${btnPrimary('Start Pull A', 'width: 160px;')}
+        <div style="width: 160px;">${btnPrimary('Start Pull A', 'transform: scale(0.97); filter: brightness(0.9);')}</div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">${bigChip('35 kg', 118)}${bigChip('35 kg', 118).replace('background: ' + T.s2, 'background: ' + T.s3 + '; transform: scale(0.97)')}</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: ${T.text3};">LOGGED — row flashes green for 1.2 s, then settles</div>
+      ${loggedRowFlash(1, '35 kg × 12', true)}
+      ${loggedRowFlash(1, '35 kg × 12', false)}
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: ${T.text3};">TOAST — compact pill, bottom, 2.5 s; errors + rare confirmations only</div>
+      <div style="display: flex; justify-content: center;"><div style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: ${T.s3}; border: 1px solid ${T.border}; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 13px; font-weight: 600;"><span style="color: ${T.ok};">${icon.checkSm}</span>Rest set to 90 s</div></div>
+      <div style="display: flex; justify-content: center;"><div style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: ${T.s3}; border: 1px solid ${T.border}; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 13px; font-weight: 600;"><span style="color: ${T.bad};">!</span>Could not save — check your connection</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: ${T.text3};">SAVED — inline on the button, no toast</div>
+      <div style="width: 200px;">${btnSecondary('Saved', 'color: ' + T.ok + ';')}</div>
+    </div>
+  </div>`)
+
+const polishFiles = { 'Main.dc.html': PolishMain, 'Logged.dc.html': PolishLogged, 'Keypad.dc.html': PolishKeypad, 'More.dc.html': PolishMore, 'CheckIn.dc.html': PolishCheckIn, 'Feedback.dc.html': PolishFeedback }
+mkdirSync(join(here, 'polish'), { recursive: true })
+for (const [name, html] of Object.entries(polishFiles)) writeFileSync(join(here, 'polish', name), html)
+const polishTitles = { 'Main.dc.html': 'Current set only', 'Logged.dc.html': 'After ✓ (no toast)', 'Keypad.dc.html': 'In-app keypad', 'More.dc.html': '••• more sheet', 'CheckIn.dc.html': "Check-in · I'm done", 'Feedback.dc.html': 'Feedback vocabulary' }
+writeFileSync(join(here, 'polish', 'canvas.json'), JSON.stringify({
+  artboards: Object.keys(polishFiles).map((file, i) => ({ file, x: i * (W + GX), y: 0, w: W, h: H, title: polishTitles[file] })),
+  annotations: [{ id: 'polish-brief', x: 0, y: -190, w: 680, text: "Session polish (v1.3) from the first real workout. 1) Only the current set is an input; logged sets stack above as compact rows (tap to change or remove). 2) Tapping a weight or reps chip opens an in-app keypad — no iOS keyboard, so no half-hidden sheet or blank bar; ± by the exercise's stepping rule, a 'last time' preset, one big Set button. 3) Logging a set flashes the row green instead of a toast; undo lives on the row. 4) Rarely used actions (type it instead, swap, note, exercise settings incl. unit) move behind '•••'. 5) Every button gets a pressed state (scale .97 + darker, 80 ms) and no tap delay. 6) Check-in: 'Nice work.' + 'I'm done'; header 'Finish' becomes 'Wrap up'. Toasts shrink to a compact pill for errors and rare confirmations." }],
+  launch: { view: 'canvas' },
+}, null, 2))
+console.log('wrote', Object.keys(polishFiles).length, 'polish artboards + polish/canvas.json')

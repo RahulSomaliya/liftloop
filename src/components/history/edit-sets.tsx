@@ -4,18 +4,19 @@ import { Check, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { deleteSession, undoDeleteSession } from '@/actions/session'
 import { deleteSet, logSet, restoreSet } from '@/actions/sets'
+import { DeleteSessionButton } from './delete-session-button'
 import type { SessionDetailExercise } from '@/db/queries/history'
 import { formatLoad } from '@/lib/domain/load-format'
 
 interface Props {
   sessionId: string
+  title: string
   exercises: SessionDetailExercise[]
 }
 
 /** Edit mode for a finished session (spec §6.5): direct rev-guarded writes, undo on delete. */
-export function EditSets({ sessionId, exercises }: Props) {
+export function EditSets({ sessionId, title, exercises }: Props) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [drafts, setDrafts] = useState<Record<string, { load: string; reps: string }>>({})
@@ -64,28 +65,6 @@ export function EditSets({ sessionId, exercises }: Props) {
     })
   }
 
-  function removeSession() {
-    start(async () => {
-      try {
-        await deleteSession({ sessionId })
-        router.push('/history')
-        toast('Session deleted', {
-          duration: 8000,
-          action: {
-            label: 'Undo',
-            onClick: () => {
-              void undoDeleteSession({ sessionId })
-                .then(() => router.refresh())
-                .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Could not restore'))
-            },
-          },
-        })
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Could not delete the session')
-      }
-    })
-  }
-
   const input = 'h-11 w-full min-w-0 rounded-xl border border-border bg-secondary px-3 text-[16px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-ring'
 
   return (
@@ -114,9 +93,7 @@ export function EditSets({ sessionId, exercises }: Props) {
           })}
         </section>
       ))}
-      <button type="button" disabled={pending} onClick={removeSession} className="mt-2 h-12 rounded-2xl border border-destructive/40 text-[15px] font-semibold text-destructive disabled:opacity-50">
-        Delete this session
-      </button>
+      <DeleteSessionButton sessionId={sessionId} title={title} />
     </div>
   )
 }

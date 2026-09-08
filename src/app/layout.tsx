@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { KeyboardGapFix } from '@/components/keyboard-gap-fix'
 import { SwRegister } from '@/components/sw-register'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="flex min-h-full flex-col bg-background text-foreground">
         {children}
         <SwRegister />
+        <KeyboardGapFix />
       </body>
     </html>
   )

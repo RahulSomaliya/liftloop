@@ -102,7 +102,7 @@ export function LineupSheet({ open, items, elapsedMin, onClose, onJump, onShort 
             }}
             className="py-1 text-center text-[14px] font-medium text-muted-foreground/70"
           >
-            Finish as short session
+            Wrap up early
           </button>
         )}
       </SheetContent>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0a0a0a; color: #fafafa; font-family: Geist, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+    a { color: #f2b134; text-decoration: none; } a:hover { color: #ffd070; }
+    .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .num { font-variant-numeric: tabular-nums; }
+    svg { display: block; }
+  </style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #0a0a0a; box-sizing: border-box;">
+
+  
+  <header style="position: relative; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 16px 0 12px; box-sizing: border-box; background: #171717; border-bottom: 1px solid rgba(255,255,255,0.10);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="color: #a3a3a3;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="font-size: 15px; font-weight: 700;">Push A</div>
+        <div class="num" style="font-size: 12px; color: #737373;">6:12 elapsed</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="num" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; background: #262626; color: #a3a3a3; font-size: 15px; font-weight: 700;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>—</div>
+      <div style="font-size: 14px; font-weight: 600; color: #a3a3a3;">Wrap up</div>
+    </div>
+    
+  </header>
+  
+  <div style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 16px; box-sizing: border-box;">
+    <div class="num" style="font-size: 13px; font-weight: 600; color: #a3a3a3; white-space: nowrap;">6 of 6</div>
+    <div style="display: flex; gap: 4px; flex-grow: 1;"><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div><div style="flex-grow: 1; height: 4px; border-radius: 999px; background: #f2b134; "></div></div>
+    <div style="display: flex; align-items: center; gap: 5px; height: 44px; padding: 0 4px; font-size: 13px; font-weight: 600; color: #a3a3a3;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Lineup</div>
+  </div>
+  
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.55);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 14px; padding: 6px 20px 42px; box-sizing: border-box; background: #171717; border-top: 1px solid rgba(255,255,255,0.10); border-radius: 24px 24px 0 0;">
+    <div style="display: flex; justify-content: center; padding: 6px 0 2px;"><div style="width: 36px; height: 4px; border-radius: 999px; background: #333333;"></div></div>
+    
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em;">Nice work.</div>
+      <div class="num" style="font-size: 13px; color: #737373;">Pull A · 41 min · 12 sets · 1 PR</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600;">Sleep last night</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; height: 48px; padding: 4px; border-radius: 14px; background: #262626; border: 1px solid rgba(255,255,255,0.10); box-sizing: border-box;">
+        <div style="display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #333333; color: #fafafa; font-size: 15px; font-weight: 700;">Good</div>
+        <div style="display: flex; align-items: center; justify-content: center; border-radius: 10px; background: transparent; color: #a3a3a3; font-size: 15px; font-weight: 500;">Bad</div>
+      </div>
+    </div>
+    
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 1px;"><div style="font-size: 15px; font-weight: 600;">Left shoulder</div><div style="font-size: 12px; color: #737373;">0 fine · 10 worst</div></div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); color: #a3a3a3;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg></div>
+          <div class="num" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; font-size: 22px; font-weight: 700;">0</div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); color: #a3a3a3;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></div>
+        </div>
+      </div>
+    
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 1px;"><div style="font-size: 15px; font-weight: 600;">Elbow</div><div style="font-size: 12px; color: #737373;">0 fine · 10 worst</div></div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); color: #a3a3a3;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg></div>
+          <div class="num" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; font-size: 22px; font-weight: 700;">0</div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); color: #a3a3a3;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></div>
+        </div>
+      </div>
+    <div style="display: flex; align-items: center; height: 48px; padding: 0 14px; border-radius: 14px; background: #262626; border: 1px solid rgba(255,255,255,0.10); color: #737373; font-size: 15px;">Anything to remember next time?</div>
+    <button style="width: 100%; height: 56px; border: 0; border-radius: 14px; background: #f2b134; color: #1a1200; font: inherit; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; ">I'm done</button>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

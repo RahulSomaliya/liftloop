@@ -63,11 +63,13 @@ async function click(selector) {
   await page.click(selector)
 }
 
+// Waits for the target (route skeletons render before a page's links exist), then clicks it.
 async function clickText(text, tag = 'button') {
+  await page.waitForFunction((t, tg) => !![...document.querySelectorAll(tg)].find((b) => b.textContent.trim() === t), { timeout: 10000 }, text, tag).catch(() => {
+    throw new Error(`no ${tag} with text "${text}"`)
+  })
   const handle = await page.evaluateHandle((t, tg) => [...document.querySelectorAll(tg)].find((b) => b.textContent.trim() === t), text, tag)
-  const el = handle.asElement()
-  if (!el) throw new Error(`no ${tag} with text "${text}"`)
-  await el.click()
+  await handle.asElement().click()
 }
 
 await waitForServer()
@@ -108,21 +110,13 @@ async function logOpenSet(weight) {
   const btn = await page.$('button[aria-label^="Log set"]')
   if (!btn) return false
   await btn.evaluate((el) => el.scrollIntoView({ block: 'center' }))
-  await sleep(100)
-  await btn.click()
+  await btn.evaluate((el) => el.click())
   await sleep(300)
-  const keypad = await page.$('input[aria-label$="— weight"]')
-  if (keypad) {
-    await keypad.click({ clickCount: 3 })
-    await keypad.type(String(weight))
-    await clickText('Done')
-    await sleep(300)
-    const again = await page.$('button[aria-label^="Log set"]')
-    if (again) {
-      await again.evaluate((el) => el.scrollIntoView({ block: 'center' }))
-      await sleep(100)
-      await again.click()
-    }
+  // v1.3: ✓ with no weight opens the in-app keypad; confirming logs the set in the same go.
+  if (await page.$('[data-keypad-display]')) {
+    for (const ch of String(weight)) await page.evaluate((c) => document.querySelector(`button[aria-label="digit ${c}"]`).click(), ch)
+    await page.evaluate(() => document.querySelector('button[aria-label="Confirm value"]').click())
+    await sleep(500)
   }
   await sleep(400)
   return true
@@ -130,41 +124,40 @@ async function logOpenSet(weight) {
 
 await logOpenSet(25)
 await shot('07-session-set-logged', 'Set 1 logged: compact row, rest timer running (120 s), undo toast')
-// reps stepper on set 2
-const repsChip = (await page.$$('button.tabular-nums.w-\\[72px\\]'))[0]
-if (repsChip) {
-  await repsChip.click()
-  await sleep(200)
-  await shot('08-session-stepper', 'Reps chip tapped → inline −/+ stepper')
-  await click('button[aria-label="increase"]')
-  await sleep(150)
-}
+// v1.3: reps chip → in-app keypad with ±1 and a "last" preset
+await page.evaluate(() => document.querySelector('button[aria-label^="Reps for set"]').click())
+await page.waitForSelector('[data-keypad-display]', { visible: true })
+await sleep(300)
+await shot('08-session-keypad', 'Reps chip tapped → in-app keypad (±1, digits, Set)')
+await page.evaluate(() => document.querySelector('button[aria-label="step up"]').click())
+await page.evaluate(() => document.querySelector('button[aria-label="Confirm value"]').click())
+await sleep(200)
 await logOpenSet(25)
 await sleep(500)
-await shot('09-session-collapsed', 'Card collapsed with verdict line; next card auto-opened')
+await shot('09-session-next', 'Exercise complete → the next exercise is current (verdict line lives in the Lineup sheet)')
 
 let guard = 0
 while (guard < 40) {
   guard += 1
-  const finish = await page.$('button::-p-text(Finish session)')
+  const finish = (await page.evaluateHandle(() => [...document.querySelectorAll('main button')].find((b) => b.textContent.trim() === "I'm done") ?? null)).asElement()
   if (finish) break
   const ok = await logOpenSet(20)
   if (!ok) break
 }
-await shot('10-session-all-done', 'Every card collapsed; Finish session button visible')
+await shot('10-session-all-done', 'Every exercise done: recap list + "I\'m done"')
 await shot('11-session-desktop', 'Session on desktop width', { w: 1440, h: 900 })
-await clickText('Finish session')
-await page.waitForSelector('button::-p-text(Save & finish)', { visible: true })
+await clickText("I'm done")
+await page.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.trim() === "I'm done"), { timeout: 10000 })
 await sleep(600)
 await clickText('Good')
 await click('button[aria-label="Left shoulder more"]')
 await sleep(200)
-await shot('12-checkin', 'Check-in sheet: sleep prefilled Good, shoulder 1, elbow 0')
+await shot('12-checkin', '"Nice work." check-in: sleep Good, shoulder 1, elbow 0, "I\'m done"')
 await page.waitForFunction(() => {
-  const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Save & finish')
+  const b = [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done")
   return b && !b.disabled
 })
-await clickText('Save & finish')
+await page.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done").click())
 await page.waitForSelector('h1::-p-text(done)', { visible: true, timeout: 15000 })
 await shot('13-summary', 'Summary: sets, verdict lines, shorthand, Next up Pull A')
 
@@ -180,6 +173,20 @@ await shot('15-history', 'History list: one Push A session with sets count')
 await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('a[href^="/history/"]')])
 await shot('16-history-detail', 'Session detail: chips, shorthand block, set table')
 await shot('17-history-detail-desktop', 'Session detail on desktop', { w: 1440, h: 900 })
+await clickText('Edit', 'a')
+await page.waitForSelector('button::-p-text(Delete session)', { visible: true })
+await clickText('Delete session')
+await page.waitForSelector('[role=dialog]', { visible: true })
+await sleep(500)
+await shot('17b-delete-confirm', 'Edit mode → Delete session → confirm sheet spelling out the consequences')
+await clickText('Delete')
+await page.waitForFunction(() => location.pathname === '/history', { timeout: 15000 })
+await sleep(700)
+await shot('17c-deleted', 'History after delete: empty list, undo toast')
+await clickText('Undo')
+await page.waitForFunction(() => !!document.querySelector('a[href^="/history/"]'), { timeout: 15000 })
+await sleep(500)
+await shot('17d-undo', 'Undo brings the session back')
 
 // ---------- More / Export ----------
 group('Coach export')
@@ -198,14 +205,24 @@ if (!reportOk) current.shots[current.shots.length - 1].check = 'fail'
 group('Session extras (Phase 2)')
 await page.goto(`${BASE}/`, { waitUntil: 'networkidle0' })
 await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), clickText('Start Pull A')])
-await clickText('swap')
+await page.waitForSelector('button[aria-label="More actions"]', { visible: true, timeout: 15000 })
+await page.evaluate(() => document.querySelector('button[aria-label="More actions"]').click())
+await page.waitForSelector('[role=dialog]', { visible: true })
+await sleep(400)
+await shot('21-more-sheet', '••• sheet: type it instead, swap, note, exercise settings')
+await page.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.trim().startsWith('Swap exercise')), { timeout: 10000 })
+await page.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((b) => b.textContent.trim().startsWith('Swap exercise')).click())
 await page.waitForSelector('button::-p-text(Assisted Pull-Up Machine)', { visible: true })
 await shot('22-swap-sheet', 'Swap sheet for Pull-Ups: Assisted Pull-Up Machine, Lat Pulldown')
 await clickText('Assisted Pull-Up Machine')
 await page.waitForFunction(() => document.body.textContent.includes('swapped from'), { timeout: 15000 })
 await sleep(600)
 await shot('23-swapped', 'Card now Assisted Pull-Up Machine, "swapped from" line, goal recomputed')
-await clickText('type it instead')
+await page.waitForSelector('button[aria-label="More actions"]', { visible: true, timeout: 15000 })
+await page.evaluate(() => document.querySelector('button[aria-label="More actions"]').click())
+await page.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.trim().startsWith('Type it instead')), { timeout: 10000 })
+await page.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((b) => b.textContent.trim().startsWith('Type it instead')).click())
+await page.waitForSelector('input[aria-label="Shorthand for this exercise"]', { visible: true })
 await page.type('input[aria-label="Shorthand for this exercise"]', '20.8.8')
 await clickText('Log')
 // Focus mode (v1.2): the finished card is replaced by the next exercise; its verdict line is in the Lineup sheet.
@@ -216,11 +233,11 @@ await sleep(400)
 await shot('24-type-it-instead', 'Shorthand "20.8.8" logged both sets; Lineup shows the verdict line, next exercise is current')
 await page.keyboard.press('Escape')
 await sleep(400)
-await clickText('Finish as short session')
-await page.waitForSelector('button::-p-text(Save & finish)', { visible: true })
+await clickText('Wrap up early')
+await page.waitForFunction(() => [...document.querySelectorAll('[role=dialog] button')].some((b) => b.textContent.trim() === "I'm done"), { timeout: 10000 })
 await sleep(600)
-await page.waitForFunction(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Save & finish'); return b && !b.disabled })
-await clickText('Save & finish')
+await page.waitForFunction(() => { const b = [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done"); return b && !b.disabled })
+await page.evaluate(() => [...document.querySelectorAll('[role=dialog] button')].find((x) => x.textContent.trim() === "I'm done").click())
 await page.waitForSelector('h1::-p-text(done)', { visible: true, timeout: 15000 })
 await shot('25-short-summary', 'Short session summary (Pull A, 1 exercise) · Next up Legs A')
 

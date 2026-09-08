@@ -26,7 +26,7 @@ import { SwapSheet, type SwapRequest } from './swap-sheet'
 import { useWakeLock } from './use-wake-lock'
 import { fmtClock, useRestTimer } from './use-rest-timer'
 
-const UNDO_MS = 5000
+const UNDO_MS = 5000 // postpone undo toast
 
 function initSlots(view: SessionView): Slot[] {
   return view.exercises.map((e) => {
@@ -143,23 +143,22 @@ export function SessionScreen({ view }: { view: SessionView }) {
     }
     setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { ...s, sets: nextSets, collapsed: complete ? collapsed : null } : s)))
     timer.start(view.rest.overrideSeconds ?? slot.restSeconds)
-    toast(`Set ${setIndex + 1} logged`, {
-      duration: UNDO_MS,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          runner.enqueue({ kind: 'deleteSet', sessionId: view.id, sessionExerciseId: slot.id, setIndex, rev: rev + 1 })
-          setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { ...s, sets: s.sets.filter((x) => x.setIndex !== setIndex), collapsed: null } : s)))
-          timer.clear()
-          setOpenIndex(slotIndex)
-        },
-      },
-    })
     if (complete) {
       const done = slots.map((s, i) => (i === slotIndex ? true : isComplete(s)))
       const next = nextIncomplete(done, slotIndex)
       setOpenIndex(next === -1 ? null : next)
     }
+  }
+
+  // Undo for a logged set lives on the row (tap → "remove set"), not in a toast (v1.3).
+  function onRemoveSet(slotIndex: number, setIndex: number) {
+    const slot = slots[slotIndex]
+    const existing = slot.sets.find((s) => s.setIndex === setIndex)
+    if (!existing) return
+    runner.enqueue({ kind: 'deleteSet', sessionId: view.id, sessionExerciseId: slot.id, setIndex, rev: existing.rev + 1 })
+    setSlots((prev) => prev.map((s, i) => (i === slotIndex ? { ...s, sets: s.sets.filter((x) => x.setIndex !== setIndex), collapsed: null } : s)))
+    timer.clear()
+    setOpenIndex(slotIndex)
   }
 
   function onSwap(slotIndex: number) {
@@ -318,7 +317,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
             <Timer size={16} /> {timer.running ? fmtClock(timer.remaining) : timer.done ? 'go' : '—'}
           </button>
           <button type="button" onClick={() => openCheckin(false)} className="text-[14px] font-semibold text-muted-foreground">
-            Finish
+            Wrap up
           </button>
         </div>
         {(timer.running || timer.done) && <span aria-hidden className={cn('absolute bottom-[-1px] left-0 h-0.5 transition-[width] duration-200', timer.done ? 'bg-success' : 'bg-primary')} style={{ width: `${Math.round(timer.progress * 100)}%` }} />}
@@ -354,9 +353,10 @@ export function SessionScreen({ view }: { view: SessionView }) {
               key={current.id}
               slot={current}
               gym={view.gym}
-              open
-              onOpen={() => undefined}
+              restSeconds={view.rest.overrideSeconds ?? current.restSeconds}
+              swapNames={(view.exercises.find((e) => e.id === current.id)?.swapOptions ?? []).map((o) => o.name)}
               onLog={(setIndex, load, reps, toFailure) => onLog(openIndex, setIndex, load, reps, toFailure)}
+              onRemoveSet={(setIndex) => onRemoveSet(openIndex, setIndex)}
               onKeypad={setKeypad}
               onNote={(note) => onNote(current, note)}
               onSwap={() => onSwap(openIndex)}
@@ -376,7 +376,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
             )}
             {shortAvailable && (
               <button type="button" onClick={() => openCheckin(true)} className="py-1 text-center text-[14px] font-medium text-muted-foreground/70">
-                Finish as short session
+                Wrap up early
               </button>
             )}
           </>
@@ -384,7 +384,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
           <>
             <LineupRows items={items} className="bg-card" />
             <button type="button" onClick={() => openCheckin(false)} className="mt-1 flex h-14 items-center justify-center rounded-2xl bg-primary text-[17px] font-bold text-primary-foreground">
-              Finish session
+              I&apos;m done
             </button>
           </>
         )}
@@ -406,6 +406,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
         short={checkin.short}
         templateName={view.templateName ?? 'Session'}
         elapsedMin={elapsedMin}
+        setCount={slots.reduce((n, s) => n + s.sets.length, 0)}
         initialSleep={view.todaySleepGood}
         pendingSets={pending === 0 ? 0 : sessionPending}
         busy={finishing}
