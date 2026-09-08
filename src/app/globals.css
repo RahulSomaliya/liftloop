@@ -146,3 +146,17 @@
     @apply font-sans;
   }
 }
+/* iPhone safe areas (standalone PWA: content runs under the Dynamic Island and the home indicator).
+   Kept as custom properties so QA can simulate an iPhone 15 (59 px top, 34 px bottom) by overriding
+   them — env() itself cannot be faked in headless Chrome, which is why the 390 px shots looked fine
+   while the real phone did not (2026-09-08). Use pt-[var(--safe-top)] / pb-[var(--safe-bottom)]. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

@@ -90,7 +90,6 @@ export default async function SessionDetailPage({ params, searchParams }: { para
                       <span>{formatLoad(e.exercise, l.load)}</span>
                       <span>
                         {l.reps === null ? 'f' : l.reps}
-                        {l.reps !== null && e.exercise.unilateral ? `/${e.exercise.unilateral}` : ''}
                       </span>
                       <span className={`text-[12px] font-bold ${l.isPr || mark === 'up' ? 'text-success' : 'text-muted-foreground/70'}`}>{l.isPr ? 'PR' : mark === 'up' ? '↑' : mark === 'eq' ? '=' : mark === 'down' ? '↓' : ''}</span>
                     </div>

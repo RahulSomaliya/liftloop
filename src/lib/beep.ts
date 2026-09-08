@@ -3,7 +3,17 @@
 // from the first ✓ tap so the later beep is allowed to play.
 let ctx: AudioContext | null = null
 
+// iOS 17+ exposes the audio session; `playback` lets Web Audio sound through the ringer/silent switch
+// (the default `auto` category is muted by it — the phone "never pinged" on silent, 2026-09-08).
+type AudioSessionNavigator = Navigator & { audioSession?: { type: string } }
+
 export function primeAudio(): void {
+  try {
+    const session = (navigator as AudioSessionNavigator).audioSession
+    if (session) session.type = 'playback'
+  } catch {
+    // older iOS / other browsers: no audio session API
+  }
   try {
     ctx ??= new AudioContext()
     if (ctx.state === 'suspended') void ctx.resume()

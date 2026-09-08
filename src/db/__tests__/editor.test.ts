@@ -3,11 +3,11 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/cache', () => ({ revalidatePath: () => undefined }))
 
-import { addTemplateEntry, createExercise, reorderTemplateEntries, setTemplateEntryArchived, updateExercise, updateGymConfig, updateTemplateEntry } from '@/actions/editor'
+import { addTemplateEntry, createExercise, reorderTemplateEntries, setTemplateEntryArchived, updateExercise, updateGymConfig, updateRestPrefs, updateTemplateEntry } from '@/actions/editor'
 import { startSession } from '@/actions/session'
 import { getDb, type Db } from '../client'
 import { runMigrations } from '../migrate'
-import { loadGym, loadTemplateEntries } from '../queries/session'
+import { loadGym, loadRestPrefs, loadTemplateEntries } from '../queries/session'
 import { exercise, sessionExercise, template, templateExercise } from '../schema'
 import { seedProgram } from '../seed'
 
@@ -70,5 +70,18 @@ describe('program editor (§5.2, §2.3.6)', () => {
     await seedProgram(db)
     const gym = await loadGym(db)
     expect(gym).toEqual({ platesLb: [2.5, 25, 45], dumbbellRackLb: [2.5, 5, 7, 10], stackStepKg: 2.5 })
+  })
+})
+
+describe('rest timer settings (§6.3 v1.2)', () => {
+  it('defaults to program rest + ping on, saves an override, survives re-seed, validates the range', async () => {
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null, ping: true })
+    await updateRestPrefs({ overrideSeconds: 75, ping: false })
+    await seedProgram(db)
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: 75, ping: false })
+    await updateRestPrefs({ overrideSeconds: null, ping: true })
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null, ping: true })
+    await expect(updateRestPrefs({ overrideSeconds: 5, ping: true })).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(updateRestPrefs({ overrideSeconds: 1200, ping: true })).rejects.toMatchObject({ code: 'VALIDATION' })
   })
 })

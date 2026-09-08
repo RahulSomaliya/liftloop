@@ -19,7 +19,7 @@ export function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]"
+      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 border-t border-border bg-card px-2 pt-2 pb-[max(var(--safe-bottom),12px)]"
     >
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = href === '/' ? pathname === '/' : pathname.startsWith(href)

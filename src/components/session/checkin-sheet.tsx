@@ -57,7 +57,7 @@ export function CheckinSheet({ open, short, templateName, elapsedMin, initialSle
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="gap-5 rounded-t-3xl border-border bg-card px-5 pb-8">
+      <SheetContent side="bottom" className="gap-5 rounded-t-3xl border-border bg-card px-5 pb-[calc(var(--safe-bottom)+2rem)]">
         <div className="flex items-baseline justify-between">
           <SheetTitle className="text-[20px] font-bold tracking-[-0.02em]">Check-in{short ? ' · short session' : ''}</SheetTitle>
           <span className="text-[13px] tabular-nums text-muted-foreground/70">

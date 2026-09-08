@@ -1,7 +1,7 @@
 // Generates the LiftLoop design artboards (*.dc.html) + canvas.json.
 // Run: node design/build.mjs   (from the repo root)
 // Design tokens mirror src/app/globals.css (shadcn neutral dark) + one amber accent.
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -570,3 +570,225 @@ const canvas = {
 }
 writeFileSync(join(here, 'canvas.json'), JSON.stringify(canvas, null, 2))
 console.log('wrote', Object.keys(files).length, 'artboards + canvas.json')
+
+// =====================================================================================
+// v1.2 — Session focus: one exercise at a time, postpone, rest ping (design/focus/*)
+// Separate canvas so the review stays small; shares every token and piece above.
+// =====================================================================================
+icon.list = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>'
+icon.skip = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h12M11 7l5 5-5 5M20 6v12"/></svg>'
+icon.chevSm = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+icon.checkSm = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+
+const restPill = (state, txt) => {
+  const bg = state === 'running' ? T.accent : state === 'done' ? T.okSoft : T.s2
+  const fg = state === 'running' ? T.accentFg : state === 'done' ? T.ok : T.text2
+  return `<div class="num" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; background: ${bg}; color: ${fg}; font-size: 15px; font-weight: 700;">${icon.timer}${txt}</div>`
+}
+// Header as today + a 2 px rest progress line along its bottom edge (fills while resting, green at 0).
+const focusHeader = (elapsed, state, txt, restPct = null) => `
+  <header style="position: relative; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 16px 0 12px; box-sizing: border-box; background: ${T.s1}; border-bottom: 1px solid ${T.border};">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="color: ${T.text2};">${icon.back}</div>
+      <div style="display: flex; flex-direction: column;">
+        <div style="font-size: 15px; font-weight: 700;">Push A</div>
+        <div class="num" style="font-size: 12px; color: ${T.text3};">${elapsed} elapsed</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      ${restPill(state, txt)}
+      <div style="font-size: 14px; font-weight: 600; color: ${T.text2};">Finish</div>
+    </div>
+    ${restPct === null ? '' : `<div style="position: absolute; left: 0; bottom: -1px; height: 2px; width: ${restPct}%; background: ${state === 'done' ? T.ok : T.accent};"></div>`}
+  </header>`
+// Progress strip: position in the lineup + one segment per exercise; "Lineup" opens the sheet.
+const progressStrip = (states) => {
+  const now = states.indexOf('now')
+  const seg = (st) => `<div style="flex-grow: 1; height: 4px; border-radius: 999px; background: ${st === 'done' ? T.accent : st === 'now' ? T.accentSoft : T.s3}; ${st === 'now' ? `box-shadow: inset 0 0 0 1px ${T.accent};` : ''}"></div>`
+  return `
+  <div style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 16px; box-sizing: border-box;">
+    <div class="num" style="font-size: 13px; font-weight: 600; color: ${T.text2}; white-space: nowrap;">${now === -1 ? states.length : now + 1} of ${states.length}</div>
+    <div style="display: flex; gap: 4px; flex-grow: 1;">${states.map(seg).join('')}</div>
+    <div style="display: flex; align-items: center; gap: 5px; height: 44px; padding: 0 4px; font-size: 13px; font-weight: 600; color: ${T.text2};">${icon.list}Lineup</div>
+  </div>`
+}
+const focusCard = (inner) => `<div style="display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 16px; background: ${T.s1}; border: 1px solid ${T.border};">${inner}</div>`
+const focusFooter = (postpone = true) => `<div style="display: flex; align-items: center; gap: 18px; padding-top: 4px; font-size: 14px; font-weight: 500; color: ${T.text2};"><span>type it instead</span><span>swap</span><span>note</span><div style="flex-grow: 1;"></div>${postpone ? `<span style="display: flex; align-items: center; gap: 5px; color: ${T.text2};">postpone ${icon.skip}</span>` : ''}</div>`
+const nextLine = (name, tag = '') => `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 16px 0; font-size: 13px; color: ${T.text3};">
+      <div style="display: flex; align-items: center; gap: 6px; min-width: 0;"><span style="white-space: nowrap;">Up next ·</span><span style="color: ${T.text2}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</span>${tag ? `<span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border: 1px solid ${T.border}; border-radius: 6px; color: ${T.text3}; white-space: nowrap;">${tag}</span>` : ''}</div>
+      ${icon.chevSm}
+    </div>`
+const undoToast = (txt) => `
+  <div style="position: absolute; left: 12px; right: 12px; bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; background: ${T.s3}; border: 1px solid ${T.border}; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+    <div class="num" style="font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${txt}</div>
+    <div style="font-size: 14px; font-weight: 700; color: ${T.accent};">Undo</div>
+  </div>`
+const landmineCard = (mid) => focusCard(`
+      ${openCardHeader('Half-Kneeling Landmine Press', '8–12/arm × 3')}
+      <div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">Beat 10 lb × 10 · 10 · 10</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        ${loggedRow(1, '10 lb × 11/arm', 'up')}
+        ${mid ? `<div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 44px; color: ${T.text3}; font-size: 13px; font-weight: 500;">Set 2</div>
+            ${chip('10 lb', 108)}
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 48px; border-radius: 12px; background: ${T.s2}; border: 1px solid ${T.border}; color: ${T.text2};">${icon.minus}</div>
+              ${chip('11/arm', 88)}
+              <div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 48px; border-radius: 12px; background: ${T.s2}; border: 1px solid ${T.border}; color: ${T.text2};">${icon.plus}</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">${checkBtn}</div>
+        </div>` : setRow(2, '10 lb', '11/arm', '10', '10')}
+        ${setRow(3, '10 lb', '11/arm', '10', '10')}
+      </div>
+      ${focusFooter()}`)
+
+// 1. Focus — mid-session, resting after set 1 of the second exercise.
+const Focus = page(`
+  ${focusHeader('12:34', 'running', '1:12', 38)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${landmineCard(true)}
+    ${nextLine('Pec Fly Machine')}
+  </div>
+  ${undoToast('Set 1 logged · 10 lb × 11/arm')}`)
+
+// 2. Rest over — the ping moment: pill flips green, the line under the header is full.
+const RestDone = page(`
+  ${focusHeader('13:46', 'done', 'go', 100)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${landmineCard(false)}
+    ${nextLine('Pec Fly Machine')}
+  </div>`)
+
+// 3. Lineup sheet over the focus screen: every exercise with its state; tap one to do it now.
+const lineupRow = (n, name, sub, state, tag = '') => {
+  const lead = state === 'done' ? `<div style="color: ${T.ok};">${icon.checkSm}</div>` : state === 'now' ? `<div style="width: 10px; height: 10px; border-radius: 999px; background: ${T.accent};"></div>` : `<div class="num" style="font-size: 13px; font-weight: 600; color: ${T.text3};">${n}</div>`
+  return `
+        <div style="display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px 0 4px; border-top: 1px solid ${T.border};">
+          <div style="display: flex; align-items: center; justify-content: center; width: 28px;">${lead}</div>
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+            <div style="display: flex; align-items: center; gap: 6px;"><span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: ${state === 'done' ? T.text2 : T.text};">${name}</span>${tag ? `<span style="font-size: 11px; font-weight: 600; padding: 1px 6px; border: 1px solid ${T.border}; border-radius: 6px; color: ${T.text3}; white-space: nowrap;">${tag}</span>` : ''}</div>
+            <div class="num" style="font-size: 13px; color: ${T.text3}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sub}</div>
+          </div>
+          ${state === 'now' ? `<div style="font-size: 12px; font-weight: 700; color: ${T.accent};">now</div>` : state === 'todo' ? `<div style="color: ${T.text3};">${icon.chevSm}</div>` : ''}
+        </div>`
+}
+const Lineup = page(`
+  ${focusHeader('12:34', 'running', '0:48', 62)}
+  ${progressStrip(['done', 'now', 'todo', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${landmineCard(false)}
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.55);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 32px; box-sizing: border-box; background: ${T.s1}; border-top: 1px solid ${T.border}; border-radius: 24px 24px 0 0;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 0 8px;">
+      <div style="font-size: 17px; font-weight: 700;">Lineup</div>
+      <div class="num" style="font-size: 13px; color: ${T.text3};">1 of 6 done · 12:34</div>
+    </div>
+    <div style="padding: 0 8px; font-size: 13px; color: ${T.text2};">Tap an exercise to do it now. Postponed ones wait one place behind the current one.</div>
+    <div style="display: flex; flex-direction: column; border: 1px solid ${T.border}; border-radius: 16px; padding: 0 4px;">
+      <div style="margin-top: -1px;">
+        ${lineupRow(1, 'Machine Chest Press', '27 kg × 12·10·9 — beat it · same weight next time', 'done')}
+        ${lineupRow(2, 'Half-Kneeling Landmine Press', '1 of 3 sets · Beat 10 lb × 10 · 10 · 10', 'now')}
+        ${lineupRow(3, 'Pec Fly Machine', 'New weight 25 kg × 10+ each set', 'todo')}
+        ${lineupRow(4, 'Cable Lateral Raise', 'Beat 10 kg × 15 · 14 · 12', 'todo')}
+        ${lineupRow(5, 'Single-Arm Cable Overhead Triceps (rope)', 'Beat 15 kg × 15 · 13', 'todo')}
+        ${lineupRow('+', 'Sidelying DB External Rotation', 'then · Beat 5 lb × 11 · 11', 'todo')}
+      </div>
+    </div>
+    <div style="text-align: center; padding-top: 4px; color: ${T.text3}; font-size: 14px; font-weight: 500;">Finish as short session</div>
+  </div>`)
+
+// 4. Postponed — Pec Fly's machine was busy: it now waits behind Cable Lateral Raise.
+const Postponed = page(`
+  ${focusHeader('19:02', 'idle', '—')}
+  ${progressStrip(['done', 'done', 'now', 'todo', 'todo', 'todo'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    ${focusCard(`
+      ${openCardHeader('Cable Lateral Raise', '12–15 × 3')}
+      <div class="num" style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">Beat 10 kg × 15 · 14 · 12</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        ${setRow(1, '10 kg', '15', '10', '15')}
+        ${setRow(2, '10 kg', '14', '10', '14')}
+        ${setRow(3, '10 kg', '12', '10', '12')}
+      </div>
+      ${focusFooter()}`)}
+    ${nextLine('Pec Fly Machine', 'postponed')}
+  </div>
+  ${undoToast('Pec Fly Machine moved after this one')}`)
+
+// 5. All done — the lineup as a recap, one primary action.
+const AllDone = page(`
+  ${focusHeader('41:10', 'idle', '—')}
+  ${progressStrip(['done', 'done', 'done', 'done', 'done', 'done'])}
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 12px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; border: 1px solid ${T.border}; border-radius: 16px; background: ${T.s1}; padding: 0 8px;">
+      <div style="margin-top: -1px;">
+        ${lineupRow(1, 'Machine Chest Press', '27 kg × 12·10·9 — beat it · same weight next time', 'done')}
+        ${lineupRow(2, 'Half-Kneeling Landmine Press', '10 lb × 11·11·10 — beat it · same weight next time', 'done')}
+        ${lineupRow(3, 'Cable Lateral Raise', '10 kg × 15·15·14 — beat it · next time: 12.5 kg', 'done')}
+        ${lineupRow(4, 'Pec Fly Machine', '25 kg × 10·10·9 — done · same weight next time', 'done', 'postponed')}
+        ${lineupRow(5, 'Single-Arm Cable Overhead Triceps (rope)', '15 kg × 15·14 — beat it · same weight next time', 'done')}
+        ${lineupRow('+', 'Sidelying DB External Rotation', '5 lb × 12·11 — beat it · next time: 7 lb', 'done')}
+      </div>
+    </div>
+    ${btnPrimary('Finish session')}
+  </div>`)
+
+// 6. Settings — rest timer card (duration + ping) above the gym config.
+const settingRow = (k, v) => `<div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid ${T.border}; font-size: 14px;"><span style="color: ${T.text2};">${k}</span><span class="num" style="text-align: right;">${v}</span></div>`
+const restChip = (txt, on) => `<div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: ${on ? T.accent : T.s2}; color: ${on ? T.accentFg : T.text}; border: 1px solid ${on ? T.accent : T.border}; font-size: 14px; font-weight: 600; white-space: nowrap;">${txt}</div>`
+const SettingsRest = page(`
+  ${topbar(`<div style="color: ${T.text2}; margin-left: -8px;">${icon.back}</div><span style="font-size: 17px; font-weight: 700;">Settings</span>`)}
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 0 20px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: ${T.s1}; border: 1px solid ${T.border};">
+      <div style="font-size: 13px; font-weight: 600; color: ${T.text2}; letter-spacing: 0.02em;">REST TIMER</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 15px; font-weight: 600;">Rest between sets</div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">${restChip('Program', true)}${restChip('60 s', false)}${restChip('90 s', false)}${restChip('120 s', false)}${restChip('180 s', false)}</div>
+        <div style="font-size: 13px; color: ${T.text3};">Program: 120 s on the first exercise, 90 s after. Per-exercise values live under Program → Edit.</div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; border-top: 1px solid ${T.border};">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><div style="font-size: 15px; font-weight: 600;">Ping when rest ends</div><div style="font-size: 13px; color: ${T.text3};">Beep and buzz while LiftLoop is open — even on silent.</div></div>
+        <div style="position: relative; width: 51px; height: 31px; border-radius: 999px; background: ${T.accent}; flex-shrink: 0;"><div style="position: absolute; top: 2px; left: 22px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35);"></div></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; border-radius: 16px; background: ${T.s1}; border: 1px solid ${T.border};">
+      <div style="margin-top: -1px;">
+        ${settingRow('Stacks', 'kg, 2.5 kg steps (odd values allowed)')}
+        ${settingRow('Free weights', 'lb')}
+        ${settingRow('Plates (lb, per side)', '2.5 · 5 · 10 · 25 · 45')}
+        ${settingRow('Dumbbell rack (lb)', '5 · 7.5 · 10 · 15 · 20 · 25 · 30, then +5')}
+        ${settingRow('Time zone', 'Asia/Kolkata (weeks start Monday)')}
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: ${T.s1}; border: 1px solid ${T.border};">
+      <div style="font-size: 12px; color: ${T.text2};">Plates (lb, per side)</div>
+      <div class="num" style="display: flex; align-items: center; height: 44px; padding: 0 12px; border-radius: 12px; background: ${T.s2}; border: 1px solid ${T.border}; font-size: 14px;">2.5, 5, 10, 25, 45</div>
+    </div>
+  </div>`)
+
+const focusFiles = {
+  'Main.dc.html': Focus,
+  'RestDone.dc.html': RestDone,
+  'Lineup.dc.html': Lineup,
+  'Postponed.dc.html': Postponed,
+  'AllDone.dc.html': AllDone,
+  'SettingsRest.dc.html': SettingsRest,
+}
+mkdirSync(join(here, 'focus'), { recursive: true })
+for (const [name, html] of Object.entries(focusFiles)) writeFileSync(join(here, 'focus', name), html)
+const focusTitles = { 'Main.dc.html': 'Focus · resting', 'RestDone.dc.html': 'Rest over (ping)', 'Lineup.dc.html': 'Lineup sheet', 'Postponed.dc.html': 'After postpone', 'AllDone.dc.html': 'All done', 'SettingsRest.dc.html': 'Settings · rest timer' }
+const focusCanvas = {
+  artboards: Object.keys(focusFiles).map((file, i) => ({ file, x: i * (W + GX), y: 0, w: W, h: H, title: focusTitles[file] })),
+  annotations: [
+    { id: 'focus-brief', x: 0, y: -170, w: 640, text: 'Session focus (v1.2): only the current exercise is on screen. A 4 px strip under the header shows where you are; "Lineup" opens the full order as a sheet (tap to jump). "postpone" in the card footer moves the current exercise one place back — 1·2·3·4·5 with 3 postponed becomes 1·2·4·3·5, so it comes back after the next one and can be postponed again if the machine is still busy. Rest: the 2 px line under the header fills while resting; at zero the pill turns green and the phone beeps + buzzes (audio session set to playback so iPhone silent mode does not mute it; only while the app is open — iOS gives web apps no background timers). Duration + ping live in Settings.' },
+  ],
+  launch: { view: 'canvas' },
+}
+writeFileSync(join(here, 'focus', 'canvas.json'), JSON.stringify(focusCanvas, null, 2))
+console.log('wrote', Object.keys(focusFiles).length, 'focus artboards + focus/canvas.json')

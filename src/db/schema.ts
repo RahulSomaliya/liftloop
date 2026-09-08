@@ -59,6 +59,10 @@ export const gymConfig = pgTable('gym_config', {
   platesLb: jsonb('plates_lb').$type<number[]>().notNull(),
   dumbbellRackLb: jsonb('dumbbell_rack_lb').$type<number[]>().notNull(),
   stackStepKg: load('stack_step_kg').notNull(),
+  /** v1.2 Settings → Rest timer. null = the program's per-exercise rest (template entry, then exercise). */
+  restOverrideSeconds: smallint('rest_override_seconds'),
+  /** Beep + vibrate when the rest timer hits zero (v1.2). */
+  restPing: boolean('rest_ping').notNull().default(true),
   editedAt: ts('edited_at'),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 })

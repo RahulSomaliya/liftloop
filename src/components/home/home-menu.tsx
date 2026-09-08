@@ -87,7 +87,7 @@ export function HomeMenu({ templates, nextTemplateId, hasLiveSession, manualEasy
         <Ellipsis size={22} />
       </button>
       <Sheet open={open} onOpenChange={(o) => !o && close()}>
-        <SheetContent side="bottom" className="gap-3 rounded-t-3xl border-border bg-card px-4 pb-8">
+        <SheetContent side="bottom" className="gap-3 rounded-t-3xl border-border bg-card px-4 pb-[calc(var(--safe-bottom)+2rem)]">
           {mode === 'menu' && (
             <>
               <SheetTitle className="px-2 text-[17px] font-bold">Actions</SheetTitle>

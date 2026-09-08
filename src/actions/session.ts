@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getDb } from '@/db/client'
@@ -9,6 +9,7 @@ import { getSessionView, loadExerciseCfg, loadExerciseHistory, loadGym, loadTemp
 import { buildSummary, type SessionSummary } from '@/db/queries/summary'
 import { bodyMetric, program, session, sessionExercise, setLog, template, templateExercise } from '@/db/schema'
 import { getGoal } from '@/lib/domain/goal'
+import { postponeAt } from '@/lib/domain/lineup'
 import { advanceLoop, sessionAdvances } from '@/lib/domain/loop'
 import { getPhase, nextWeekPhaseName } from '@/lib/domain/phase'
 import { todayIST } from '@/lib/domain/time'
@@ -133,6 +134,40 @@ export async function swapExercise(input: { sessionExerciseId: string; exerciseI
   })
   revalidatePath('/session/[id]', 'page')
   return { goal }
+}
+
+const postponeSchema = z.object({ sessionExerciseId: uuid })
+
+/**
+ * Postpone (spec §6.3 v1.2, "machine busy"): the exercise trades order_index with the next one so
+ * it comes back right after it (1·2·3·4·5 → 1·2·4·3·5). Logged sets stay with the row; only the
+ * order changes. Returns the session's new lineup (session_exercise ids in order).
+ */
+export async function postponeExercise(input: { sessionExerciseId: string }): Promise<{ order: string[] }> {
+  const parsed = postponeSchema.safeParse(input)
+  if (!parsed.success) throw new AppError('VALIDATION', 'Invalid postpone request')
+  const db = await getDb()
+  const order = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ se: sessionExercise, s: session })
+      .from(sessionExercise)
+      .innerJoin(session, eq(session.id, sessionExercise.sessionId))
+      .where(eq(sessionExercise.id, parsed.data.sessionExerciseId))
+      .limit(1)
+    if (!row || row.s.deletedAt) throw new AppError('NOT_FOUND', 'Exercise not found', 404)
+    if (row.s.finishedAt) throw new AppError('SESSION_FINISHED', 'This session is finished', 409)
+    const rows = await tx.select({ id: sessionExercise.id, orderIndex: sessionExercise.orderIndex }).from(sessionExercise).where(eq(sessionExercise.sessionId, row.s.id)).orderBy(asc(sessionExercise.orderIndex))
+    const i = rows.findIndex((r) => r.id === row.se.id)
+    if (i === -1 || i === rows.length - 1) throw new AppError('VALIDATION', 'This is the last exercise — nothing to postpone it behind')
+    const next = rows[i + 1]
+    // (session_id, order_index) is unique: park the current row on a free index before the swap.
+    await tx.update(sessionExercise).set({ orderIndex: -1 }).where(eq(sessionExercise.id, row.se.id))
+    await tx.update(sessionExercise).set({ orderIndex: row.se.orderIndex }).where(eq(sessionExercise.id, next.id))
+    await tx.update(sessionExercise).set({ orderIndex: next.orderIndex }).where(eq(sessionExercise.id, row.se.id))
+    return postponeAt(rows, i).map((r) => r.id)
+  })
+  revalidatePath('/session/[id]', 'page')
+  return { order }
 }
 
 const noteSchema = z.object({ sessionExerciseId: uuid, note: z.string().max(500) })

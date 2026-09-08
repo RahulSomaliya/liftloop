@@ -1,17 +1,17 @@
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { GymConfigForm } from '@/components/editor/gym-config-form'
+import { RestSettingsForm } from '@/components/editor/rest-settings-form'
 import { getDb } from '@/db/client'
-import { loadGym } from '@/db/queries/session'
+import { loadGym, loadRestPrefs } from '@/db/queries/session'
 import { PROGRAM_V2 } from '@/db/seed/program-v2'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
-  const gym = await loadGym(await getDb())
+  const db = await getDb()
+  const [gym, rest] = await Promise.all([loadGym(db), loadRestPrefs(db)])
   const rows: [string, string][] = [
-    ['Rest, first exercise', `${PROGRAM_V2.restSecondsFirstExercise} s`],
-    ['Rest, other exercises', `${PROGRAM_V2.restSecondsDefault} s`],
     ['Stacks', `kg, ${gym.stackStepKg} kg steps (odd values allowed)`],
     ['Free weights', 'lb'],
     ['Plates (lb, per side)', gym.platesLb.join(' · ')],
@@ -27,6 +27,7 @@ export default async function SettingsPage() {
         </Link>
         <h1 className="text-[17px] font-bold">Settings</h1>
       </header>
+      <RestSettingsForm rest={rest} programDefault={`${PROGRAM_V2.restSecondsFirstExercise} s on the first exercise, ${PROGRAM_V2.restSecondsDefault} s after`} />
       <section className="flex flex-col rounded-2xl border border-border bg-card">
         {rows.map(([k, v]) => (
           <div key={k} className="flex items-start justify-between gap-4 border-t border-border px-4 py-3 text-[14px] first:border-t-0">
@@ -36,7 +37,6 @@ export default async function SettingsPage() {
         ))}
       </section>
       <GymConfigForm gym={gym} />
-      <p className="text-[13px] text-muted-foreground/70">Rest defaults live on each exercise and template entry — edit them under Program → Edit.</p>
     </main>
   )
 }

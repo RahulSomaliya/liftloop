@@ -27,7 +27,7 @@ export function KeypadSheet({ request, onClose }: { request: KeypadRequest | nul
 
   return (
     <Sheet open={request !== null} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="gap-4 rounded-t-3xl border-border bg-card px-5 pb-8">
+      <SheetContent side="bottom" className="gap-4 rounded-t-3xl border-border bg-card px-5 pb-[calc(var(--safe-bottom)+2rem)]">
         <SheetTitle className="text-[17px] font-bold">{request?.title}</SheetTitle>
         <SheetDescription className="sr-only">Enter a value</SheetDescription>
         <form

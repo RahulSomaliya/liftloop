@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0a0a0a; color: #fafafa; font-family: Geist, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 15px; line-height: 1.4; -webkit-font-smoothing: antialiased; }
+    a { color: #f2b134; text-decoration: none; } a:hover { color: #ffd070; }
+    .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .num { font-variant-numeric: tabular-nums; }
+    svg { display: block; }
+  </style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #0a0a0a; box-sizing: border-box;">
+
+  
+  <header style="display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 20px; box-sizing: border-box;">
+    <div style="display: flex; align-items: center; gap: 8px;"><div style="color: #a3a3a3; margin-left: -8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></div><span style="font-size: 17px; font-weight: 700;">Settings</span></div>
+    <div style="display: flex; align-items: center; gap: 8px; color: #a3a3a3;"></div>
+  </header>
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 0 20px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #171717; border: 1px solid rgba(255,255,255,0.10);">
+      <div style="font-size: 13px; font-weight: 600; color: #a3a3a3; letter-spacing: 0.02em;">REST TIMER</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 15px; font-weight: 600;">Rest between sets</div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;"><div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: #f2b134; color: #1a1200; border: 1px solid #f2b134; font-size: 14px; font-weight: 600; white-space: nowrap;">Program</div><div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: #262626; color: #fafafa; border: 1px solid rgba(255,255,255,0.10); font-size: 14px; font-weight: 600; white-space: nowrap;">60 s</div><div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: #262626; color: #fafafa; border: 1px solid rgba(255,255,255,0.10); font-size: 14px; font-weight: 600; white-space: nowrap;">90 s</div><div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: #262626; color: #fafafa; border: 1px solid rgba(255,255,255,0.10); font-size: 14px; font-weight: 600; white-space: nowrap;">120 s</div><div class="num" style="display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; border-radius: 10px; background: #262626; color: #fafafa; border: 1px solid rgba(255,255,255,0.10); font-size: 14px; font-weight: 600; white-space: nowrap;">180 s</div></div>
+        <div style="font-size: 13px; color: #737373;">Program: 120 s on the first exercise, 90 s after. Per-exercise values live under Program → Edit.</div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.10);">
+        <div style="display: flex; flex-direction: column; gap: 2px;"><div style="font-size: 15px; font-weight: 600;">Ping when rest ends</div><div style="font-size: 13px; color: #737373;">Beep and buzz while LiftLoop is open — even on silent.</div></div>
+        <div style="position: relative; width: 51px; height: 31px; border-radius: 999px; background: #f2b134; flex-shrink: 0;"><div style="position: absolute; top: 2px; left: 22px; width: 27px; height: 27px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35);"></div></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; border-radius: 16px; background: #171717; border: 1px solid rgba(255,255,255,0.10);">
+      <div style="margin-top: -1px;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><span style="color: #a3a3a3;">Stacks</span><span class="num" style="text-align: right;">kg, 2.5 kg steps (odd values allowed)</span></div>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><span style="color: #a3a3a3;">Free weights</span><span class="num" style="text-align: right;">lb</span></div>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><span style="color: #a3a3a3;">Plates (lb, per side)</span><span class="num" style="text-align: right;">2.5 · 5 · 10 · 25 · 45</span></div>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><span style="color: #a3a3a3;">Dumbbell rack (lb)</span><span class="num" style="text-align: right;">5 · 7.5 · 10 · 15 · 20 · 25 · 30, then +5</span></div>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.10); font-size: 14px;"><span style="color: #a3a3a3;">Time zone</span><span class="num" style="text-align: right;">Asia/Kolkata (weeks start Monday)</span></div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #171717; border: 1px solid rgba(255,255,255,0.10);">
+      <div style="font-size: 12px; color: #a3a3a3;">Plates (lb, per side)</div>
+      <div class="num" style="display: flex; align-items: center; height: 44px; padding: 0 12px; border-radius: 12px; background: #262626; border: 1px solid rgba(255,255,255,0.10); font-size: 14px;">2.5, 5, 10, 25, 45</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

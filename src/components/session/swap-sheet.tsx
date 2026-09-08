@@ -12,7 +12,7 @@ export interface SwapRequest {
 export function SwapSheet({ request, onClose, busy }: { request: SwapRequest | null; onClose(): void; busy: boolean }) {
   return (
     <Sheet open={request !== null} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="gap-3 rounded-t-3xl border-border bg-card px-4 pb-8">
+      <SheetContent side="bottom" className="gap-3 rounded-t-3xl border-border bg-card px-4 pb-[calc(var(--safe-bottom)+2rem)]">
         <SheetTitle className="px-2 text-[17px] font-bold">Swap {request?.exerciseName}</SheetTitle>
         <SheetDescription className="px-2 text-[13px] text-muted-foreground">The goal is recomputed for the new exercise. Sets already logged in this slot are removed.</SheetDescription>
         <div className="flex flex-col divide-y divide-border rounded-2xl border border-border">

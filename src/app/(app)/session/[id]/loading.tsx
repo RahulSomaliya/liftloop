@@ -3,9 +3,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 // Mirrors SessionScreen's sticky header and collapsed exercise cards (the tab bar is hidden here).
 export default function SessionLoading() {
   return (
-    <div aria-busy="true" className="flex flex-col">
+    <div aria-busy="true" className="mt-[calc(var(--safe-top)*-1)] flex flex-col">
       <span className="sr-only">Loading…</span>
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-card px-3 pr-4">
+      <header className="sticky top-0 z-10 flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between border-b border-border bg-card px-3 pr-4 pt-[var(--safe-top)]">
         <div className="flex items-center gap-2.5">
           <Skeleton className="ml-2.5 size-6 rounded-full" />
           <div className="flex flex-col gap-1.5">

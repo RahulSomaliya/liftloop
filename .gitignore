@@ -31,3 +31,5 @@ qa/shots/
 .pglite/
 qa/*.html
 qa/loaders-shots/
+qa/focus-shots/
+qa/full-shots/

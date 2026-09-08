@@ -26,7 +26,6 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
     ['Rest', `${ex.restSeconds} s`],
     ['Muscles', ex.muscles.map((m) => `${m.group.replace('_', ' ')} ${m.credit}`).join(', ')],
   ]
-  if (ex.unilateral) settings.push(['Unilateral', `per ${ex.unilateral}`])
   if (ex.aliases.length) settings.push(['Aliases', ex.aliases.join(', ')])
   if (d.swaps.length) settings.push(['Swaps', d.swaps.map((s) => s.name).join(', ')])
 

@@ -1,0 +1,64 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Focus · resting"
+    },
+    {
+      "file": "RestDone.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Rest over (ping)"
+    },
+    {
+      "file": "Lineup.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Lineup sheet"
+    },
+    {
+      "file": "Postponed.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "After postpone"
+    },
+    {
+      "file": "AllDone.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "All done"
+    },
+    {
+      "file": "SettingsRest.dc.html",
+      "x": 2450,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Settings · rest timer"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "focus-brief",
+      "x": 0,
+      "y": -170,
+      "w": 640,
+      "text": "Session focus (v1.2): only the current exercise is on screen. A 4 px strip under the header shows where you are; \"Lineup\" opens the full order as a sheet (tap to jump). \"postpone\" in the card footer moves the current exercise one place back — 1·2·3·4·5 with 3 postponed becomes 1·2·4·3·5, so it comes back after the next one and can be postponed again if the machine is still busy. Rest: the 2 px line under the header fills while resting; at zero the pill turns green and the phone beeps + buzzes (audio session set to playback so iPhone silent mode does not mute it; only while the app is open — iOS gives web apps no background timers). Duration + ping live in Settings."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

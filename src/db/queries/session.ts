@@ -3,7 +3,7 @@ import type { Db, Tx } from '@/db/client'
 import { bodyMetric, exercise, gymConfig, session, sessionExercise, setLog, template, templateExercise } from '@/db/schema'
 import { PROGRAM_V2 } from '@/db/seed/program-v2'
 import { weekBoundsIST } from '@/lib/domain/time'
-import type { ExerciseCfg, Goal, GymCfg, HistoryEntry, PhaseName, SessionType, Verdict } from '@/lib/domain/types'
+import type { ExerciseCfg, Goal, GymCfg, HistoryEntry, PhaseName, RestPrefs, SessionType, Verdict } from '@/lib/domain/types'
 
 type Dbx = Db | Tx
 type ExerciseRow = typeof exercise.$inferSelect
@@ -26,10 +26,23 @@ export function rowToExerciseCfg(r: ExerciseRow): ExerciseCfg {
   }
 }
 
-export async function loadGym(db: Dbx): Promise<GymCfg> {
+type GymRow = typeof gymConfig.$inferSelect
+
+async function gymRow(db: Dbx): Promise<GymRow> {
   const [g] = await db.select().from(gymConfig).limit(1)
   if (!g) throw new Error('No gym config seeded — run pnpm db:seed')
-  return { platesLb: g.platesLb, dumbbellRackLb: g.dumbbellRackLb, stackStepKg: g.stackStepKg }
+  return g
+}
+const gymFromRow = (g: GymRow): GymCfg => ({ platesLb: g.platesLb, dumbbellRackLb: g.dumbbellRackLb, stackStepKg: g.stackStepKg })
+const restFromRow = (g: GymRow): RestPrefs => ({ overrideSeconds: g.restOverrideSeconds, ping: g.restPing })
+
+export async function loadGym(db: Dbx): Promise<GymCfg> {
+  return gymFromRow(await gymRow(db))
+}
+
+/** Settings → Rest timer (v1.2); lives on the gym_config singleton. */
+export async function loadRestPrefs(db: Dbx): Promise<RestPrefs> {
+  return restFromRow(await gymRow(db))
 }
 
 export async function loadExerciseCfg(db: Dbx, id: string): Promise<ExerciseCfg | null> {
@@ -159,6 +172,8 @@ export interface SessionView {
   todaySleepGood: boolean | null
   exercises: SessionExerciseView[]
   gym: GymCfg
+  /** Rest timer settings: `overrideSeconds` replaces every slot's `restSeconds` when set. */
+  rest: RestPrefs
   warmup: string[]
   nextWeekPhase: PhaseName
 }
@@ -186,7 +201,7 @@ export async function getSessionView(db: Dbx, sessionId: string, nextWeekPhase: 
   const named = swapAndOriginIds.length ? await db.select({ id: exercise.id, name: exercise.name, swapIds: exercise.swapIds }).from(exercise).where(inArray(exercise.id, swapAndOriginIds)) : []
   const nameOf = new Map(named.map((n) => [n.id, n.name]))
   const [todayMetric] = await db.select({ sleepGood: bodyMetric.sleepGood }).from(bodyMetric).where(eq(bodyMetric.date, s.s.date)).limit(1)
-  const gym = await loadGym(db)
+  const g = await gymRow(db)
 
   return {
     id: s.s.id,
@@ -225,7 +240,8 @@ export async function getSessionView(db: Dbx, sessionId: string, nextWeekPhase: 
         setLogs: sets.filter((x) => x.sessionExerciseId === se.id).map((x) => ({ setIndex: x.setIndex, rev: x.rev, load: x.load, reps: x.reps, toFailure: x.toFailure, isPr: x.isPr })),
       }
     }),
-    gym,
+    gym: gymFromRow(g),
+    rest: restFromRow(g),
     warmup: PROGRAM_V2.warmup,
     nextWeekPhase,
   }

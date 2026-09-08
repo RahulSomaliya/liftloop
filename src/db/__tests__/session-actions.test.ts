@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/cache', () => ({ revalidatePath: () => undefined }))
 
-import { discardSession, finishSession, loadSessionView, startSession, swapExercise, undoDiscard } from '@/actions/session'
+import { discardSession, finishSession, loadSessionView, postponeExercise, startSession, swapExercise, undoDiscard } from '@/actions/session'
 import { deleteSet, logSet, logSetsFromShorthand, restoreSet } from '@/actions/sets'
 import { getDb } from '../client'
 import { runMigrations } from '../migrate'
@@ -160,5 +160,27 @@ describe('finishSession (§11.1, §2.1)', () => {
     expect(r2.row.isPr).toBe(false)
     await discardSession({ sessionId: S4 })
     expect((await db.select().from(program))[0].nextIndex).toBe(1)
+  })
+})
+
+describe('postponeExercise (§6.3 v1.2)', () => {
+  const S5 = '55555555-5555-4555-8555-555555555555'
+  it('moves the exercise one place later and can be postponed again; the last one cannot', async () => {
+    await startSession({ id: S5, templateId: pushA, advancesLoop: false })
+    const before = (await loadSessionView(S5))!.exercises.map((e) => e.id)
+    expect(before).toHaveLength(6)
+    const r = await postponeExercise({ sessionExerciseId: before[2] })
+    expect(r.order).toEqual([before[0], before[1], before[3], before[2], before[4], before[5]])
+    const after = (await loadSessionView(S5))!.exercises
+    expect(after.map((e) => e.id)).toEqual(r.order)
+    expect(after.map((e) => e.orderIndex)).toEqual([0, 1, 2, 3, 4, 5])
+    const again = await postponeExercise({ sessionExerciseId: before[2] })
+    expect(again.order).toEqual([before[0], before[1], before[3], before[4], before[2], before[5]])
+    await expect(postponeExercise({ sessionExerciseId: before[5] })).rejects.toMatchObject({ code: 'VALIDATION' })
+  })
+  it('refuses once the session is finished', async () => {
+    const ids = (await loadSessionView(S5))!.exercises.map((e) => e.id)
+    await finishSession({ sessionId: S5, type: 'short', sleepGood: null, shoulderPain: 0, elbowPain: 0, note: null })
+    await expect(postponeExercise({ sessionExerciseId: ids[0] })).rejects.toMatchObject({ code: 'SESSION_FINISHED' })
   })
 })

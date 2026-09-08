@@ -46,6 +46,12 @@ export interface GymCfg {
   stackStepKg: number
 }
 
+/** Settings → Rest timer (v1.2). `overrideSeconds` null = the program's per-exercise rest. */
+export interface RestPrefs {
+  overrideSeconds: number | null
+  ping: boolean
+}
+
 export interface TemplateEntry {
   sets: number
   lo: number

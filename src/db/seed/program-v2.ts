@@ -37,7 +37,7 @@ export const PROGRAM_V2 = {
   warmup: [
     'Bike/treadmill 2 min',
     'Cable Face Pull very light × 15',
-    'Sidelying DB External Rotation, lightest DB × 12/arm',
+    'Sidelying DB External Rotation, lightest DB × 12',
     'Ramp-up sets of the first exercise at ~50% × 8 and ~75% × 4',
   ],
   exercises: [

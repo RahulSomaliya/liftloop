@@ -46,7 +46,7 @@ export default async function ProgramPage({ searchParams }: { searchParams: Prom
                 </Link>
                 <span className="tabular-nums text-muted-foreground">
                   {e.lo === e.hi ? e.hi : `${e.lo}–${e.hi}`}
-                  {e.exercise.unilateral ? `/${e.exercise.unilateral}` : ''} × {e.sets}
+                  {' × '}{e.sets}
                 </span>
                 <span className="w-9 text-right text-[12px] tabular-nums text-muted-foreground/70">{e.restSeconds ?? e.exercise.restSeconds}s</span>
               </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUp, Check, ChevronDown, Equal, Minus, Plus } from 'lucide-react'
+import { ArrowRightToLine, ArrowUp, Check, ChevronDown, Equal, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { formatLoad } from '@/lib/domain/load-format'
@@ -42,6 +42,8 @@ interface Props {
   onNote(note: string): void
   onSwap(): void
   onShorthand(line: string): Promise<boolean>
+  /** null when this is the last exercise in the lineup (nothing to wait behind) */
+  onPostpone: (() => void) | null
   /** true while this session has unsaved set writes: swap / shorthand are gated (spec §11.2) */
   gated: boolean
 }
@@ -80,7 +82,7 @@ function MarkIcon({ mark }: { mark: Mark }) {
   return null
 }
 
-export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote, onSwap, onShorthand, gated }: Props) {
+export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote, onSwap, onShorthand, onPostpone, gated }: Props) {
   const { exercise, goal } = slot
   const setCount = goal?.sets ?? 0
   const [drafts, setDrafts] = useState<Draft[]>(() => initDrafts(goal))
@@ -100,7 +102,6 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
   const logged = new Map(slot.sets.map((s) => [s.setIndex, s]))
   const allLogged = setCount > 0 && Array.from({ length: setCount }, (_, i) => logged.has(i)).every(Boolean)
   const unit = exercise.unit
-  const repsSuffix = exercise.unilateral ? `/${exercise.unilateral}` : ''
 
   function setLoad(i: number, load: number | null, cascade = true) {
     setDrafts((d) =>
@@ -146,7 +147,7 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
   }
 
   return (
-    <section className="flex flex-col gap-3.5 rounded-2xl border border-primary bg-card p-4" aria-label={exercise.name}>
+    <section className="flex flex-col gap-3.5 rounded-2xl border border-border bg-card p-4" aria-label={exercise.name}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-[17px] font-bold tracking-[-0.01em]">
           <Link href={`/exercise/${exercise.id}`}>{exercise.name}</Link>
@@ -154,7 +155,7 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
         {goal && (
           <span className="whitespace-nowrap text-[13px] tabular-nums text-muted-foreground/70">
             {goal.lo === goal.hi ? goal.hi : `${goal.lo}–${goal.hi}`}
-            {repsSuffix} × {goal.sets}
+            {' × '}{goal.sets}
           </span>
         )}
       </div>
@@ -180,7 +181,6 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
                 <span className="w-11 text-[13px] font-medium text-muted-foreground/70">Set {i + 1}</span>
                 <span className="text-[17px] font-semibold tabular-nums">
                   {formatLoad(exercise, done.load)} × {done.reps === null ? 'f' : done.reps}
-                  {done.reps !== null && repsSuffix}
                 </span>
                 {goal && <MarkIcon mark={markFor(goal, i, done.reps)} />}
                 {done.isPr && <span className="rounded border border-success px-1 text-[10px] font-bold tracking-wider text-success">PR</span>}
@@ -192,6 +192,19 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
           }
           const d = drafts[i] ?? { load: null, reps: goal?.hi ?? 0 }
           const ghost = goal?.ghost
+          // While a −/+ stepper is open the row is ~400 px wide; the ✓ moves to its own line so
+          // nothing squeezes or overflows on a 393 px phone (real-device finding, 2026-09-08).
+          const stepping = active?.setIndex === i
+          const check = (
+            <button
+              type="button"
+              onClick={() => confirm(i)}
+              aria-label={`Log set ${i + 1} as ${d.load === null ? 'unset' : formatLoad(exercise, d.load)} × ${d.reps}`}
+              className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground active:scale-95"
+            >
+              <Check size={24} strokeWidth={2.6} />
+            </button>
+          )
           return (
             <div key={i} className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -207,7 +220,7 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
                   onPlus={() => bumpLoad(i, 1)}
                 />
                 <Chip
-                  label={`${d.reps}${repsSuffix}`}
+                  label={String(d.reps)}
                   width="w-[72px]"
                   active={active?.setIndex === i && active.field === 'reps'}
                   onTap={() => setActive(active?.setIndex === i && active.field === 'reps' ? null : { setIndex: i, field: 'reps' })}
@@ -216,15 +229,9 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
                   onPlus={() => setReps(i, d.reps + 1)}
                 />
                 <span className="flex-1" />
-                <button
-                  type="button"
-                  onClick={() => confirm(i)}
-                  aria-label={`Log set ${i + 1} as ${d.load === null ? 'unset' : formatLoad(exercise, d.load)} × ${d.reps}`}
-                  className="flex h-12 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground active:scale-95"
-                >
-                  <Check size={24} strokeWidth={2.6} />
-                </button>
+                {!stepping && check}
               </div>
+              {stepping && <div className="flex justify-end">{check}</div>}
               {ghost && !isEditing && (
                 <div className="flex gap-2 pl-[52px] text-[12px] text-muted-foreground/60">
                   <span className="w-[108px] text-center">last {formatLoad(exercise, ghost.load)}</span>
@@ -251,6 +258,11 @@ export function ExerciseCard({ slot, gym, open, onOpen, onLog, onKeypad, onNote,
         <button type="button" onClick={() => setNoteOpen((o) => !o)} className={cn(slot.note && 'text-foreground')}>
           note{slot.note ? ' ·' : ''}
         </button>
+        {onPostpone && (
+          <button type="button" onClick={onPostpone} title="Machine busy? Do the next exercise first" className="ml-auto flex items-center gap-1.5">
+            postpone <ArrowRightToLine size={16} aria-hidden />
+          </button>
+        )}
       </div>
       {shorthandOpen && (
         <form
