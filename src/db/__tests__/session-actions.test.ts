@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('next/cache', () => ({ revalidatePath: () => undefined }))
 
-import { discardSession, finishSession, loadSessionView, postponeExercise, startSession, swapExercise, undoDiscard } from '@/actions/session'
+import { deleteSession, discardSession, finishSession, loadSessionView, postponeExercise, startSession, swapExercise, undoDeleteSession, undoDiscard } from '@/actions/session'
 import { deleteSet, logSet, logSetsFromShorthand, restoreSet } from '@/actions/sets'
 import { getDb } from '../client'
 import { runMigrations } from '../migrate'
@@ -182,5 +182,24 @@ describe('postponeExercise (§6.3 v1.2)', () => {
     const ids = (await loadSessionView(S5))!.exercises.map((e) => e.id)
     await finishSession({ sessionId: S5, type: 'short', sleepGood: null, shoulderPain: 0, elbowPain: 0, note: null })
     await expect(postponeExercise({ sessionExerciseId: ids[0] })).rejects.toMatchObject({ code: 'SESSION_FINISHED' })
+  })
+})
+
+describe('deleteSession hands the loop pointer back (v1.2)', () => {
+  const S6 = '66666666-6666-4666-8666-666666666666'
+  it('deleting the latest advancing session rewinds next_index; undo re-advances it', async () => {
+    const before = await loadProgram(db)
+    const tpl = before.templates[before.nextIndex]
+    const advanced = (before.nextIndex + 1) % before.templates.length
+    await startSession({ id: S6, templateId: tpl.id })
+    await finishSession({ sessionId: S6, type: 'normal', sleepGood: null, shoulderPain: 0, elbowPain: 0, note: null })
+    expect((await loadProgram(db)).nextIndex).toBe(advanced)
+    await deleteSession({ sessionId: S6 })
+    expect((await loadProgram(db)).nextIndex).toBe(before.nextIndex)
+    await undoDeleteSession({ sessionId: S6 })
+    expect((await loadProgram(db)).nextIndex).toBe(advanced)
+    // deleting an OLDER advancing session leaves the pointer where the latest one put it
+    await deleteSession({ sessionId: S1 })
+    expect((await loadProgram(db)).nextIndex).toBe(advanced)
   })
 })

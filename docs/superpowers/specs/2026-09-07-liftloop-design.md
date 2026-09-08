@@ -213,7 +213,7 @@ Passcode field only. Wrong passcode → inline error. After 5 failures in 15 min
 
 ### 6.2 Home
 
-- "Next: Legs A" + big Start button. If a live session is in progress: "Resume Legs A · started 12 min ago" replaces Start; a secondary "Discard" (soft-deletes, undo toast).
+- "Next: Legs A" + big Start button. If a live session is in progress: "Resume Legs A · started 12 min ago" replaces Start; a secondary "Discard" (soft-deletes, undo toast). Deleting a finished session from History (Edit → Delete session) soft-deletes it too; v1.2: if it advanced the loop and is still the latest session to do so, `next_index` moves back to its template (undo re-advances), so a test workout can be removed without leaving the loop one step ahead.
 - Phase card: phase name, week number, target days/week, one-line sets/effort rule, easy-week dates (next scheduled easy week; or "Easy week until <date>" during a manual one). "6th day OK this week" badge when the sleep gate is open (§7.9) in a Build phase.
 - This week: dots = live finished `normal`/`short` sessions with `source = 'logged'` this Mon–Sun IST week vs `weekPhase(thisWeek).targetDays`. Walk days shown as a footnote ("+1 walk").
 - Shoulder banner when the shoulder rule fires (§2.3).

@@ -1,9 +1,9 @@
 'use server'
 
-import { and, asc, eq, isNotNull, isNull, ne } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, isNull, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { getDb } from '@/db/client'
+import { getDb, type Tx } from '@/db/client'
 import { loadProgram } from '@/db/queries/home'
 import { getSessionView, loadExerciseCfg, loadExerciseHistory, loadGym, loadTemplateEntries, type SessionView } from '@/db/queries/session'
 import { buildSummary, type SessionSummary } from '@/db/queries/summary'
@@ -292,11 +292,37 @@ export async function logWalk(input: { minutes: number; note: string | null }): 
 
 // ---------- Delete (History) ----------
 
-/** Soft-deletes any live session (finished or not); undo restores it (spec §6.5, §11.4). */
+/** True when no other live, finished, loop-advancing session finished after this one. */
+async function isLatestAdvancing(tx: Tx, s: { id: string; finishedAt: Date }): Promise<boolean> {
+  const [later] = await tx
+    .select({ id: session.id })
+    .from(session)
+    .where(and(isNull(session.deletedAt), isNotNull(session.finishedAt), eq(session.advancedLoop, true), ne(session.type, 'walk'), ne(session.id, s.id), gt(session.finishedAt, s.finishedAt)))
+    .limit(1)
+  return !later
+}
+
+/**
+ * Soft-deletes any live session (finished or not); undo restores it (spec §6.5, §11.4).
+ * v1.2: when the session advanced the loop and is still the most recent one to do so, the pointer
+ * moves back to its template — deleting a test workout must not leave the loop one step ahead.
+ */
 export async function deleteSession(input: { sessionId: string }): Promise<void> {
   const id = uuid.parse(input.sessionId)
   const db = await getDb()
-  await db.update(session).set({ deletedAt: new Date() }).where(and(eq(session.id, id), isNull(session.deletedAt)))
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ s: session, tpl: template })
+      .from(session)
+      .leftJoin(template, eq(template.id, session.templateId))
+      .where(and(eq(session.id, id), isNull(session.deletedAt)))
+      .limit(1)
+    if (!row) return
+    await tx.update(session).set({ deletedAt: new Date() }).where(eq(session.id, id))
+    if (row.tpl && row.s.finishedAt && sessionAdvances(row.s.type, row.s.advancedLoop) && (await isLatestAdvancing(tx, { id, finishedAt: row.s.finishedAt }))) {
+      await tx.update(program).set({ nextIndex: row.tpl.orderIndex }).where(eq(program.id, row.tpl.programId))
+    }
+  })
   revalidatePath('/')
   revalidatePath('/history')
 }
@@ -307,7 +333,21 @@ export async function undoDeleteSession(input: { sessionId: string }): Promise<v
   const [target] = await db.select({ finishedAt: session.finishedAt }).from(session).where(eq(session.id, id)).limit(1)
   if (!target) throw new AppError('NOT_FOUND', 'Session not found', 404)
   if (!target.finishedAt) return undoDiscard({ sessionId: id })
-  await db.update(session).set({ deletedAt: null }).where(eq(session.id, id))
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ s: session, tpl: template })
+      .from(session)
+      .leftJoin(template, eq(template.id, session.templateId))
+      .where(and(eq(session.id, id), isNotNull(session.deletedAt)))
+      .limit(1)
+    if (!row) return
+    await tx.update(session).set({ deletedAt: null }).where(eq(session.id, id))
+    // Mirror of deleteSession: a restored latest advancing session pushes the pointer forward again.
+    if (row.tpl && row.s.finishedAt && sessionAdvances(row.s.type, row.s.advancedLoop) && (await isLatestAdvancing(tx, { id, finishedAt: row.s.finishedAt }))) {
+      const prog = await loadProgram(tx)
+      await tx.update(program).set({ nextIndex: advanceLoop(prog.templates.length, row.tpl.orderIndex) }).where(eq(program.id, row.tpl.programId))
+    }
+  })
   revalidatePath('/')
   revalidatePath('/history')
 }
