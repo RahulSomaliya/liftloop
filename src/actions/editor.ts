@@ -171,7 +171,7 @@ export async function updateGymConfig(input: GymInput): Promise<void> {
 }
 
 // Settings → Rest timer (v1.2). Not seed-managed, so `edited_at` (the seed guard for plates) stays untouched.
-const restSchema = z.object({ overrideSeconds: z.number().int().min(15).max(600).nullable(), ping: z.boolean() })
+const restSchema = z.object({ overrideSeconds: z.number().int().min(15).max(600).nullable() })
 
 export type RestInput = z.input<typeof restSchema>
 
@@ -179,6 +179,6 @@ export async function updateRestPrefs(input: RestInput): Promise<void> {
   const parsed = restSchema.safeParse(input)
   if (!parsed.success) throw new AppError('VALIDATION', 'Rest must be between 15 and 600 seconds')
   const db = await getDb()
-  await db.update(gymConfig).set({ restOverrideSeconds: parsed.data.overrideSeconds, restPing: parsed.data.ping, updatedAt: new Date() }).where(eq(gymConfig.id, 1))
+  await db.update(gymConfig).set({ restOverrideSeconds: parsed.data.overrideSeconds, updatedAt: new Date() }).where(eq(gymConfig.id, 1))
   revalidatePath('/', 'layout')
 }

@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import type { SessionView } from '@/db/queries/session'
 import type { SessionSummary } from '@/db/queries/summary'
 import type { SetWriteResult } from '@/actions/sets'
-import { primeAudio } from '@/lib/beep'
 import { nextIncomplete, postponeAt } from '@/lib/domain/lineup'
 import type { LoggedSet } from '@/lib/domain/types'
 import { collapsedLine, getVerdict } from '@/lib/domain/verdict'
@@ -81,7 +80,7 @@ export function SessionScreen({ view }: { view: SessionView }) {
   // Ids postponed in this visit — a tag in the lineup, nothing more (order lives on the server).
   const [postponed, setPostponed] = useState<ReadonlySet<string>>(() => new Set())
   const [elapsedMin, setElapsedMin] = useState(() => Math.max(0, Math.round((Date.now() - new Date(view.startedAt).getTime()) / 60000)))
-  const timer = useRestTimer({ ping: view.rest.ping })
+  const timer = useRestTimer()
   const sessionPending = runner.pendingFor(view.id)
   useWakeLock(true)
   const online = useSyncExternalStore(
@@ -130,7 +129,6 @@ export function SessionScreen({ view }: { view: SessionView }) {
   )
 
   function onLog(slotIndex: number, setIndex: number, load: number, reps: number | null, toFailure: boolean) {
-    primeAudio()
     const slot = slots[slotIndex]
     const rev = enqueueLog(slot, setIndex, load, reps, toFailure)
     const nextSets = upsertSet(slot.sets, { setIndex, rev, load, reps, toFailure, isPr: false, status: 'pending' })

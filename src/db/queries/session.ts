@@ -34,7 +34,7 @@ async function gymRow(db: Dbx): Promise<GymRow> {
   return g
 }
 const gymFromRow = (g: GymRow): GymCfg => ({ platesLb: g.platesLb, dumbbellRackLb: g.dumbbellRackLb, stackStepKg: g.stackStepKg })
-const restFromRow = (g: GymRow): RestPrefs => ({ overrideSeconds: g.restOverrideSeconds, ping: g.restPing })
+const restFromRow = (g: GymRow): RestPrefs => ({ overrideSeconds: g.restOverrideSeconds })
 
 export async function loadGym(db: Dbx): Promise<GymCfg> {
   return gymFromRow(await gymRow(db))

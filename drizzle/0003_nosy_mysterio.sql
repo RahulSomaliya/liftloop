@@ -1,0 +1,1 @@
+ALTER TABLE "gym_config" DROP COLUMN "rest_ping";

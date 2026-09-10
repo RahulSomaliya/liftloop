@@ -11,15 +11,14 @@ const PRESETS = [60, 90, 120, 150, 180]
 const MIN = 15
 const MAX = 600
 
-/** Settings → Rest timer (spec §6.3 v1.2): one duration for every exercise, or the program's, plus the end-of-rest ping. */
+/** Settings → Rest timer (spec §6.3 v1.2): one duration for every exercise, or the program's. Visual timer only — no sound in the PWA (see use-rest-timer.ts). */
 export function RestSettingsForm({ rest, programDefault }: { rest: RestPrefs; programDefault: string }) {
   const router = useRouter()
   const [override, setOverride] = useState<number | null>(rest.overrideSeconds)
   const [custom, setCustom] = useState(rest.overrideSeconds !== null && !PRESETS.includes(rest.overrideSeconds) ? String(rest.overrideSeconds) : '')
-  const [ping, setPing] = useState(rest.ping)
   const [pending, start] = useTransition()
 
-  function save(next: { overrideSeconds: number | null; ping: boolean }) {
+  function save(next: { overrideSeconds: number | null }) {
     start(async () => {
       try {
         await updateRestPrefs(next)
@@ -33,7 +32,7 @@ export function RestSettingsForm({ rest, programDefault }: { rest: RestPrefs; pr
   function pick(seconds: number | null) {
     setOverride(seconds)
     if (seconds === null || PRESETS.includes(seconds)) setCustom('')
-    save({ overrideSeconds: seconds, ping })
+    save({ overrideSeconds: seconds })
   }
   function commitCustom() {
     if (custom.trim() === '') return
@@ -44,11 +43,6 @@ export function RestSettingsForm({ rest, programDefault }: { rest: RestPrefs; pr
     }
     setCustom(String(n))
     pick(n)
-  }
-  function togglePing() {
-    const next = !ping
-    setPing(next)
-    save({ overrideSeconds: override, ping: next })
   }
 
   const chip = (on: boolean) => cn('flex h-10 items-center justify-center rounded-[10px] border px-3.5 text-[14px] font-semibold tabular-nums whitespace-nowrap', on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-secondary text-foreground')
@@ -83,15 +77,6 @@ export function RestSettingsForm({ rest, programDefault }: { rest: RestPrefs; pr
           </label>
         </div>
         <p className="text-[13px] text-muted-foreground/70">Program: {programDefault}. Per-exercise values live under Program → Edit.</p>
-      </div>
-      <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[15px] font-semibold">Ping when rest ends</p>
-          <p className="text-[13px] text-muted-foreground/70">Beep and buzz while LiftLoop is open, even on silent.</p>
-        </div>
-        <button type="button" role="switch" aria-checked={ping} aria-label="Ping when rest ends" onClick={togglePing} className={cn('relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors', ping ? 'bg-primary' : 'bg-secondary')}>
-          <span className={cn('absolute top-0.5 size-[27px] rounded-full bg-background shadow-md transition-[left]', ping ? 'left-[22px]' : 'left-0.5')} />
-        </button>
       </div>
     </section>
   )

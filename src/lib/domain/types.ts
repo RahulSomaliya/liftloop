@@ -49,7 +49,6 @@ export interface GymCfg {
 /** Settings → Rest timer (v1.2). `overrideSeconds` null = the program's per-exercise rest. */
 export interface RestPrefs {
   overrideSeconds: number | null
-  ping: boolean
 }
 
 export interface TemplateEntry {

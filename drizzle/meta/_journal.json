@@ -22,6 +22,13 @@
       "when": 1788846272040,
       "tag": "0002_public_synch",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789039200592,
+      "tag": "0003_nosy_mysterio",
+      "breakpoints": true
     }
   ]
 }

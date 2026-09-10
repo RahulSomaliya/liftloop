@@ -74,14 +74,14 @@ describe('program editor (§5.2, §2.3.6)', () => {
 })
 
 describe('rest timer settings (§6.3 v1.2)', () => {
-  it('defaults to program rest + ping on, saves an override, survives re-seed, validates the range', async () => {
-    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null, ping: true })
-    await updateRestPrefs({ overrideSeconds: 75, ping: false })
+  it('defaults to program rest, saves an override, survives re-seed, validates the range', async () => {
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null })
+    await updateRestPrefs({ overrideSeconds: 75 })
     await seedProgram(db)
-    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: 75, ping: false })
-    await updateRestPrefs({ overrideSeconds: null, ping: true })
-    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null, ping: true })
-    await expect(updateRestPrefs({ overrideSeconds: 5, ping: true })).rejects.toMatchObject({ code: 'VALIDATION' })
-    await expect(updateRestPrefs({ overrideSeconds: 1200, ping: true })).rejects.toMatchObject({ code: 'VALIDATION' })
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: 75 })
+    await updateRestPrefs({ overrideSeconds: null })
+    expect(await loadRestPrefs(db)).toEqual({ overrideSeconds: null })
+    await expect(updateRestPrefs({ overrideSeconds: 5 })).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(updateRestPrefs({ overrideSeconds: 1200 })).rejects.toMatchObject({ code: 'VALIDATION' })
   })
 })
